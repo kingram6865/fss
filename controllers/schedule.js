@@ -51,10 +51,10 @@ async function addAppointment (req, res) {
         confirmed
       )
       VALUES (
-        ${req.params.lessonid},
-        ${req.params.timeid},
-        ${req.params.teacherid},
-        ${req.params.clientid},
+        ${req.params.lesson_id},
+        ${req.params.time_increment_id},
+        ${req.params.instructor_id},
+        ${req.params.client_id},
         ${req.params.confirmed}
       )`
     const appointment = await executeSQL(SQL)

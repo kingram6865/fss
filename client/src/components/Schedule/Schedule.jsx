@@ -12,11 +12,8 @@ export default function Schedule (props) {
     }
 
     populate()
-    const results = appointments.map((x, index) => {
-      return <><tr>{x.lesson_info}<td></td></tr></>
-    })
-  
-    // const appointment = appointments.map(x => {
+
+    // const appointment = appointments.map((x, index) => {
     //   return <><td>{x.lesson_info}</td><td>{x.start_time}</td><td>{x.end_time}</td><td>{x.instructor}</td><td>{x.client}</td></>
     // })
   }, [appointments])
