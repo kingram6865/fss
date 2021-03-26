@@ -11,7 +11,6 @@ const DBLOGIN = {
   database: process.env.DB
 }
 
-// console.log(DBLOGIN)
 const conn = mysql.createConnection(DBLOGIN)
 
 module.exports = {

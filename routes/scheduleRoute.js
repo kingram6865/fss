@@ -7,3 +7,5 @@ router.get('/schedule/:id', controllers.getAppointment)
 router.post('/schedule', controllers.addAppointment)
 router.put('/schedule/:id', controllers.editAppointment)
 router.delete('/schedule/:id', controllers.deleteAppointment)
+
+module.exports = router

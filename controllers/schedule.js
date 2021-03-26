@@ -1,7 +1,5 @@
 const { conn } = require('../db/connection')
 
-console.log(conn)
-
 async function executeSQL (sql) {
   const results = await conn.promise().query(sql)
   return results  
@@ -11,17 +9,17 @@ async function errMsg (msg = null) {
   res.status(500).json({ error: msg })
 }
 
-async function test () {
-  try {
-    const SQL = `SELECT * FROM appointment_schedule`
-    const [rows, fields] = await executeSQL(SQL)
-    console.log(rows)
-  } catch (error) {
-    console.log(error.message)
-  } finally {
-    conn.end()
-  }
-}
+// async function test () {
+//   try {
+//     const SQL = `SELECT * FROM appointment_schedule`
+//     const [rows, fields] = await executeSQL(SQL)
+//     console.log(rows)
+//   } catch (error) {
+//     console.log(error.message)
+//   } finally {
+//     conn.end()
+//   }
+// }
 
 async function getAppointments (req, res) {
   try {
@@ -36,8 +34,8 @@ async function getAppointments (req, res) {
 async function getAppointment (req, res) {
   try {
     const SQL = `SELECT * FROM appointment_schedule WHERE objid = ${req.params.id}`
-    const appointment = await executeSQL(SQL)
-    res.json(appointment)
+    const [rows, fields] = await executeSQL(SQL)
+    res.json(rows)
   } catch (error) {
     errMsg(error.message)
   }
@@ -99,7 +97,7 @@ async function deleteAppointment (req, res) {
   }
 }
 
-test()
+// test()
 
 module.exports = {
   getAppointments,
