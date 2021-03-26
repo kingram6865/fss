@@ -19,7 +19,7 @@ async function test () {
   } catch (error) {
     console.log(error.message)
   } finally {
-    db.end()
+    conn.end()
   }
 }
 
