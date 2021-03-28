@@ -1,0 +1,7 @@
+.dead-links {
+  padding: 5px 5px;
+}
+
+.dead-links:hover {
+  background-color: chartreuse;
+}

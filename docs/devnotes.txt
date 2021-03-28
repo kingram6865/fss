@@ -1,0 +1,30 @@
+2021 03 25 1320 Passion Project
+
+
+lesson_info:
+IF (session_type < 8) THEN
+session_type, " Day - ", session_dates, date_format(session_period1_start, '%m-%d-%Y'), " to ", date_format(session_period1_end, '%m-%d-%Y')
+ELSE 
+session_type, " Day - ", session_dates,  , date_format(session_period1_start, '%m-%d-%Y'), " to ", date_format(session_period1_end, '%m-%d-%Y')
+
+start_time, end_time, lesson_type
+===================================================
+* client *
+SELECT first_name, last_name INTO v_clientfname, v_clientlname from instructors WHERE objid = NEW.instructor_id
+
+
+* instructor *
+SELECT first_name, last_name INTO v_instructorfname, v_instructorlname from instructors WHERE objid = NEW.instructor_id
+
+
+* time slot *
+SELECT start_time, end_time, description INTO v_starttime, v_endtime, v_description FROM time_increments WHERE objid = NEW.time_increment_id
+
+
+* session *
+SELECT session_location, session_dates, session_type, session_period1_start, session_period1_end, session_period2_start, session_period2_end, teachers INTO v_sessionlocation, v_sessiondates, v_sessiontype, v_sessionperiod1start, v_sessionperiod1end, v_sessionperiod2start, v_sessionperiod2end, v_numteachers FROM lesson_details WHERE objid = NEW.lesson_detail_id;
+
+===================================================
+2021 03 26 0216  FSS API Completed
+
+http://bastiat.hopto.org:3006/api/schedule

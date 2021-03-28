@@ -1,10 +1,12 @@
 import './App.css';
-import Schedule from './components/Schedule/Schedule'
+// import Schedule from './components/Schedule/Schedule'
+import Appointments from './screens/Appointments/Appointments'
 
 function App() {
   return (
     <div className="App">
-      <Schedule />
+      {/* <Schedule /> */}
+    <Appointments />
     </div>
   );
 }
