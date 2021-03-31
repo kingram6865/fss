@@ -6,7 +6,7 @@ const logger = require('morgan')
 const schedule = require('./routes/scheduleRoute')
 
 const PORT = process.env.PORT || 3000
-const SERVER = process.env.HOST || 'localhost'
+// const SERVER = process.env.HOST || 'localhost'
 
 const app = express()
 
