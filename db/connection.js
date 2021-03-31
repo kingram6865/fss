@@ -20,6 +20,5 @@ const DBLOGIN = {
 // const conn = mysql.createConnection(DBLOGIN)
 
 module.exports = {
-  conn,
   db
 }
