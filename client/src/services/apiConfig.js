@@ -3,7 +3,7 @@ import axios from "axios"
 let apiUrl;
 
 const apiUrls = {
-  production: '',
+  production: 'https://fss-schedule.herokuapp.com/api',
   development: 'http://192.168.1.19:3006/api',
 }
 
