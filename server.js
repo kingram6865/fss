@@ -15,4 +15,5 @@ app.use(cors())
 app.use(logger('dev'))
 app.use('/api', schedule)
 
-app.listen(PORT, SERVER, () => console.log(`Listening on port: ${PORT} at ${SERVER}`))
+// app.listen(PORT, SERVER, () => console.log(`Listening on port: ${PORT} at ${SERVER}`))
+app.listen(PORT, () => console.log(`Listening on port: ${PORT}`))
