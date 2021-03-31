@@ -1,7 +1,9 @@
-const { conn } = require('../db/connection')
+// const { conn } = require('../db/connection')
+const { db } = require('../db/connection')
 
 async function executeSQL (sql) {
-  const results = await conn.promise().query(sql)
+  // const results = await conn.promise().query(sql)
+  const results = await db.any(sql)
   return results  
 }
 
@@ -9,22 +11,11 @@ async function errMsg (msg = null) {
   res.status(500).json({ error: msg })
 }
 
-// async function test () {
-//   try {
-//     const SQL = `SELECT * FROM appointment_schedule`
-//     const [rows, fields] = await executeSQL(SQL)
-//     console.log(rows)
-//   } catch (error) {
-//     console.log(error.message)
-//   } finally {
-//     conn.end()
-//   }
-// }
-
 async function getAppointments (req, res) {
   try {
     const SQL = `SELECT * FROM appointment_schedule`
-    const [rows, fields] = await executeSQL(SQL)
+    // const [rows, fields] = await executeSQL(SQL)
+    const rows = await executeSQL(SQL)
     res.json(rows)
   } catch (error) {
     errMsg(error.message)
@@ -34,7 +25,8 @@ async function getAppointments (req, res) {
 async function getAppointment (req, res) {
   try {
     const SQL = `SELECT * FROM appointment_schedule WHERE objid = ${req.params.id}`
-    const [rows, fields] = await executeSQL(SQL)
+    // const [rows, fields] = await executeSQL(SQL)
+    const rows = await executeSQL(SQL)
     res.json(rows)
   } catch (error) {
     errMsg(error.message)
@@ -97,7 +89,21 @@ async function deleteAppointment (req, res) {
   }
 }
 
-// test()
+
+async function test () {
+  try {
+    const SQL = `SELECT * FROM appointment_schedule`
+    const [rows, fields] = await executeSQL(SQL)
+    console.log(rows)
+  } catch (error) {
+    console.log(error.message)
+  } finally {
+    // conn.end()
+    db.$pool.end()
+  }
+}
+
+test()
 
 module.exports = {
   getAppointments,

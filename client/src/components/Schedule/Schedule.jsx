@@ -9,6 +9,7 @@ export default function Schedule (props) {
     const populate = async () => {
       const results = await getAppointmentSchedule()
       // setAppointments(results)
+      console.log(results)
       const data = results.map((item, index) => {
         return (
           <tr key={index}>
@@ -23,7 +24,7 @@ export default function Schedule (props) {
       })
 
       setAppointments(data)
-      console.log(results)
+      // console.log(results)
     }
 
     populate()
