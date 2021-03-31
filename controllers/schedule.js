@@ -1,24 +1,16 @@
-// const { conn } = require('../db/connection')
 const { db } = require('../db/connection')
 
 async function executeSQL (sql) {
-  // const results = await conn.promise().query(sql)
   const results = await db.any(sql)
   return results  
 }
 
-// async function errMsg (msg = null) {
-//   res.status(500).json({ error: msg })
-// }
-
 async function getAppointments (req, res) {
   try {
-    const SQL = `SELECT * FROM appointment_schedule`
-    // const [rows, fields] = await executeSQL(SQL)
+    const SQL = `SELECT * FROM appointment_schedule ORDER BY `
     const rows = await executeSQL(SQL)
     res.json(rows)
   } catch (error) {
-    // errMsg(error.message)
     res.status(500).json(error.message)
   }
 }
@@ -26,11 +18,9 @@ async function getAppointments (req, res) {
 async function getAppointment (req, res) {
   try {
     const SQL = `SELECT * FROM appointment_schedule WHERE objid = ${req.params.id}`
-    // const [rows, fields] = await executeSQL(SQL)
     const rows = await executeSQL(SQL)
     res.json(rows)
   } catch (error) {
-    // errMsg(error.message)
     res.status(500).json(error.message)
   }
 }
@@ -93,7 +83,6 @@ async function deleteAppointment (req, res) {
     // errMsg(error.message)
   }
 }
-
 
 // async function test () {
 //   try {
