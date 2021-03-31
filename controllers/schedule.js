@@ -7,9 +7,9 @@ async function executeSQL (sql) {
   return results  
 }
 
-async function errMsg (msg = null) {
-  res.status(500).json({ error: msg })
-}
+// async function errMsg (msg = null) {
+//   res.status(500).json({ error: msg })
+// }
 
 async function getAppointments (req, res) {
   try {
@@ -18,7 +18,8 @@ async function getAppointments (req, res) {
     const rows = await executeSQL(SQL)
     res.json(rows)
   } catch (error) {
-    errMsg(error.message)
+    // errMsg(error.message)
+    res.status(500).json(error.message)
   }
 }
 
@@ -29,7 +30,8 @@ async function getAppointment (req, res) {
     const rows = await executeSQL(SQL)
     res.json(rows)
   } catch (error) {
-    errMsg(error.message)
+    // errMsg(error.message)
+    res.status(500).json(error.message)
   }
 }
 
@@ -52,7 +54,8 @@ async function addAppointment (req, res) {
     const appointment = await executeSQL(SQL)
     res.status(201).json(appointment)
   } catch (error) {
-    errMsg(error.message)
+    // errMsg(error.message)
+    res.status(500).json(error.message)
   }
 }
 
@@ -76,7 +79,8 @@ async function editAppointment (req, res) {
     const appointment = await executeSQL(SQL, values)
     res.status(201).json(appointment)
   } catch (error) {
-    errMsg(error.message)
+    // errMsg(error.message)
+    res.status(500).json(error.message)
   }
 }
 
@@ -85,25 +89,26 @@ async function deleteAppointment (req, res) {
     const SQL = `DELETE FROM appointment_schedule WHERE objid = ${req.params.id}`
     const appointment = await executeSQL(SQL)
   } catch (error) {
-    errMsg(error.message)
+    res.status(500).json(error.message)
+    // errMsg(error.message)
   }
 }
 
 
-async function test () {
-  try {
-    const SQL = `SELECT * FROM appointment_schedule`
-    const [rows, fields] = await executeSQL(SQL)
-    console.log(rows)
-  } catch (error) {
-    console.log(error.message)
-  } finally {
-    // conn.end()
-    db.$pool.end()
-  }
-}
+// async function test () {
+//   try {
+//     const SQL = `SELECT * FROM appointment_schedule`
+//     const [rows, fields] = await executeSQL(SQL)
+//     console.log(rows)
+//   } catch (error) {
+//     console.log(error.message)
+//   } finally {
+//     // conn.end()
+//     db.$pool.end()
+//   }
+// }
 
-test()
+// test()
 
 module.exports = {
   getAppointments,
