@@ -24,15 +24,9 @@ export default function Schedule (props) {
       })
 
       setAppointments(data)
-      // console.log(results)
     }
 
     populate()
-
-    // const appointment = appointments.map((x, index) => {
-    //   return <><td>{x.lesson_info}</td><td>{x.start_time}</td><td>{x.end_time}</td><td>{x.instructor}</td><td>{x.client}</td></>
-    // })
-
 
   }, [])
 

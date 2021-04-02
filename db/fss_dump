@@ -1,0 +1,2238 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 11.9 (Debian 11.9-0+deb10u1)
+-- Dumped by pg_dump version 11.9 (Debian 11.9-0+deb10u1)
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: edit_appointment(); Type: FUNCTION; Schema: public; Owner: kingram
+--
+
+CREATE FUNCTION public.edit_appointment() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+---
+--- When a new appointment is created only the foreign key data is inserted
+--- the record is updated with the proper information from the foreign key parent
+---
+
+DECLARE 
+  v_clientfname VARCHAR(35);
+  v_clientlname VARCHAR(35);
+  v_instructorfname VARCHAR(35);
+  v_instructorlname VARCHAR(35);
+  v_starttime VARCHAR(10);
+  v_endtime VARCHAR(10);
+  v_description VARCHAR(500);
+  v_sessionlocation VARCHAR(100);
+  v_sessiondates VARCHAR(255);
+  v_sessiontype INTEGER;
+  v_sessionperiod1start DATE;
+  v_sessionperiod1end DATE;
+  v_sessionperiod2start DATE;
+  v_sessionperiod2end DATE;
+  v_numteachers INTEGER;
+  v_lessoninfo VARCHAR(500);
+BEGIN
+
+  IF ((NEW.time_increment_id <> OLD.time_increment_id) AND (NEW.time_increment_id IS NOT NULL)) THEN
+    SELECT start_time, end_time, description INTO v_starttime, v_endtime, v_description FROM time_increments WHERE objid = NEW.time_increment_id;
+    NEW.start_time := v_starttime;
+    NEW.end_time := v_endtime;
+  END IF;
+
+  IF ((NEW.instructor_id <> OLD.instructor_id) AND (NEW.instructor_id IS NOT NULL)) THEN
+    SELECT first_name, last_name INTO v_instructorfname, v_instructorlname from instructors WHERE objid = NEW.instructor_id;
+    NEW.instructor := CONCAT(TRIM(v_instructorfname), ' ', TRIM(v_instructorlname));
+  END IF;
+
+  IF ((NEW.client_id <> OLD.client_id) AND (NEW.client_id IS NOT NULL)) THEN
+    SELECT first_name, last_name INTO v_clientfname, v_clientlname from clients WHERE objid = NEW.client_id;
+    NEW.client := CONCAT(TRIM(v_clientfname), ' ', TRIM(v_clientlname));
+  END IF;
+
+  IF ((NEW.lesson_detail_id <> OLD.lesson_detail_id) AND (NEW.lesson_detail_id IS NOT NULL))  THEN
+    SELECT session_location, session_dates, session_type, session_period1_start, session_period1_end, session_period2_start, session_period2_end, teachers INTO v_sessionlocation, v_sessiondates, v_sessiontype, v_sessionperiod1start, v_sessionperiod1end, v_sessionperiod2start, v_sessionperiod2end, v_numteachers FROM lesson_details WHERE objid = NEW.lesson_detail_id;
+    v_lessoninfo := CONCAT(TRIM(v_sessiontype::text), ' Day -> ', TRIM(v_sessiondates));
+    NEW.lesson_type := v_sessiontype;
+    NEW.lesson_info := v_lessoninfo;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.edit_appointment() OWNER TO kingram;
+
+--
+-- Name: new_appointment(); Type: FUNCTION; Schema: public; Owner: kingram
+--
+
+CREATE FUNCTION public.new_appointment() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+---
+--- When a new appointment is created only the foreign key data is inserted
+--- the record is updated with the proper information from the foreign key parent
+---
+
+DECLARE 
+  v_clientfname VARCHAR(35);
+  v_clientlname VARCHAR(35);
+  v_instructorfname VARCHAR(35);
+  v_instructorlname VARCHAR(35);
+  v_starttime VARCHAR(10);
+  v_endtime VARCHAR(10);
+  v_description VARCHAR(500);
+  v_sessionlocation VARCHAR(100);
+  v_sessiondates VARCHAR(255);
+  v_sessiontype INTEGER;
+  v_sessionperiod1start DATE;
+  v_sessionperiod1end DATE;
+  v_sessionperiod2start DATE;
+  v_sessionperiod2end DATE;
+  v_numteachers INTEGER;
+  v_lessoninfo VARCHAR(500);
+BEGIN
+  SELECT first_name, last_name INTO v_clientfname, v_clientlname from clients WHERE objid = NEW.instructor_id ;
+  SELECT first_name, last_name INTO v_instructorfname, v_instructorlname from instructors WHERE objid = NEW.instructor_id;
+  SELECT start_time, end_time, description INTO v_starttime, v_endtime, v_description FROM time_increments WHERE objid = NEW.time_increment_id;
+  SELECT session_location, session_dates, session_type, session_period1_start, session_period1_end, session_period2_start, session_period2_end, teachers INTO v_sessionlocation, v_sessiondates, v_sessiontype, v_sessionperiod1start, v_sessionperiod1end, v_sessionperiod2start, v_sessionperiod2end, v_numteachers FROM lesson_details WHERE objid = NEW.lesson_detail_id;
+
+  v_lessoninfo := CONCAT(v_sessiontype, ' Day -> ', v_sessiondates);
+  NEW.start_time := v_starttime;
+  NEW.end_time := v_endtime;
+  NEW.lesson_type := v_sessiontype;
+  NEW.instructor := CONCAT(TRIM(v_instructorfname), ' ', TRIM(v_instructorlname));
+  NEW.client := CONCAT(TRIM(v_clientfname), ' ', TRIM(v_clientlname));
+  NEW.lesson_info := v_lessoninfo;
+ 
+ IF (NEW.created IS NULL) THEN
+   NEW.created = NOW();
+ END IF;
+
+ RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.new_appointment() OWNER TO kingram;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- Name: appointment_schedule; Type: TABLE; Schema: public; Owner: kingram
+--
+
+CREATE TABLE public.appointment_schedule (
+    objid bigint NOT NULL,
+    created timestamp without time zone,
+    lesson_detail_id bigint,
+    lesson_info character varying(500) DEFAULT NULL::character varying,
+    time_increment_id bigint,
+    start_time character varying(10) DEFAULT NULL::character varying,
+    end_time character varying(10) DEFAULT NULL::character varying,
+    lesson_type character varying(20) DEFAULT NULL::character varying,
+    instructor_id bigint,
+    instructor character varying(80) DEFAULT NULL::character varying,
+    client_id bigint,
+    client character varying(80) DEFAULT NULL::character varying,
+    confirmed smallint,
+    last_edit timestamp without time zone
+);
+
+
+ALTER TABLE public.appointment_schedule OWNER TO kingram;
+
+--
+-- Name: appointment_schedule_objid_seq; Type: SEQUENCE; Schema: public; Owner: kingram
+--
+
+CREATE SEQUENCE public.appointment_schedule_objid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.appointment_schedule_objid_seq OWNER TO kingram;
+
+--
+-- Name: appointment_schedule_objid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: kingram
+--
+
+ALTER SEQUENCE public.appointment_schedule_objid_seq OWNED BY public.appointment_schedule.objid;
+
+
+--
+-- Name: clients; Type: TABLE; Schema: public; Owner: kingram
+--
+
+CREATE TABLE public.clients (
+    objid bigint NOT NULL,
+    first_name character varying(25) DEFAULT NULL::character varying,
+    last_name character varying(25) DEFAULT NULL::character varying,
+    dob date,
+    age character varying(10) DEFAULT NULL::character varying,
+    swim_ability character varying(255) DEFAULT NULL::character varying,
+    parent_name character varying(65) DEFAULT NULL::character varying,
+    parent_id bigint,
+    parent smallint,
+    student smallint,
+    filemaker smallint,
+    checked_paper_file smallint,
+    has_paper_file smallint,
+    from_labels smallint,
+    email character varying(80) DEFAULT NULL::character varying,
+    verified smallint,
+    notes character varying(400) DEFAULT NULL::character varying,
+    date_updated timestamp without time zone,
+    update_notes character varying(300) DEFAULT NULL::character varying,
+    CONSTRAINT clients_swim_ability_check CHECK (((swim_ability)::text = ANY ((ARRAY['1'::character varying, '2'::character varying, '3'::character varying, '4'::character varying, '5'::character varying, '6'::character varying, '7'::character varying, '8'::character varying, '9'::character varying, '10'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.clients OWNER TO kingram;
+
+--
+-- Name: COLUMN clients.verified; Type: COMMENT; Schema: public; Owner: kingram
+--
+
+COMMENT ON COLUMN public.clients.verified IS '1=client verified';
+
+
+--
+-- Name: clients_objid_seq; Type: SEQUENCE; Schema: public; Owner: kingram
+--
+
+CREATE SEQUENCE public.clients_objid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.clients_objid_seq OWNER TO kingram;
+
+--
+-- Name: clients_objid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: kingram
+--
+
+ALTER SEQUENCE public.clients_objid_seq OWNED BY public.clients.objid;
+
+
+--
+-- Name: instructors; Type: TABLE; Schema: public; Owner: kingram
+--
+
+CREATE TABLE public.instructors (
+    objid bigint NOT NULL,
+    entry_date timestamp without time zone,
+    first_name character varying(30) DEFAULT NULL::character varying,
+    middle_name character varying(30) DEFAULT NULL::character varying,
+    last_name character varying(30) DEFAULT NULL::character varying,
+    dob timestamp without time zone
+);
+
+
+ALTER TABLE public.instructors OWNER TO kingram;
+
+--
+-- Name: instructors_objid_seq; Type: SEQUENCE; Schema: public; Owner: kingram
+--
+
+CREATE SEQUENCE public.instructors_objid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.instructors_objid_seq OWNER TO kingram;
+
+--
+-- Name: instructors_objid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: kingram
+--
+
+ALTER SEQUENCE public.instructors_objid_seq OWNED BY public.instructors.objid;
+
+
+--
+-- Name: lesson_details; Type: TABLE; Schema: public; Owner: kingram
+--
+
+CREATE TABLE public.lesson_details (
+    objid bigint NOT NULL,
+    session_id bigint,
+    session_name character varying(30) DEFAULT NULL::character varying,
+    session_year integer,
+    session_location_id bigint,
+    session_location character varying(255) DEFAULT NULL::character varying,
+    session_dates character varying(255) DEFAULT NULL::character varying,
+    session_type smallint,
+    session_period1_start timestamp without time zone,
+    session_period1_end timestamp without time zone,
+    session_period2_start timestamp without time zone,
+    session_period2_end timestamp without time zone,
+    teachers integer,
+    notes character varying(255) DEFAULT NULL::character varying
+);
+
+
+ALTER TABLE public.lesson_details OWNER TO kingram;
+
+--
+-- Name: COLUMN lesson_details.teachers; Type: COMMENT; Schema: public; Owner: kingram
+--
+
+COMMENT ON COLUMN public.lesson_details.teachers IS 'Number of teachers for session';
+
+
+--
+-- Name: lesson_details_objid_seq; Type: SEQUENCE; Schema: public; Owner: kingram
+--
+
+CREATE SEQUENCE public.lesson_details_objid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.lesson_details_objid_seq OWNER TO kingram;
+
+--
+-- Name: lesson_details_objid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: kingram
+--
+
+ALTER SEQUENCE public.lesson_details_objid_seq OWNED BY public.lesson_details.objid;
+
+
+--
+-- Name: locations; Type: TABLE; Schema: public; Owner: kingram
+--
+
+CREATE TABLE public.locations (
+    objid bigint,
+    site_name character varying(255) DEFAULT NULL::character varying,
+    site_address character varying(255) DEFAULT NULL::character varying,
+    site_city character varying(255) DEFAULT NULL::character varying,
+    site_zip character varying(255) DEFAULT NULL::character varying
+);
+
+
+ALTER TABLE public.locations OWNER TO kingram;
+
+--
+-- Name: mtm_lesson2client; Type: TABLE; Schema: public; Owner: kingram
+--
+
+CREATE TABLE public.mtm_lesson2client (
+    objid bigint NOT NULL,
+    client_id bigint,
+    session_id bigint,
+    lesson_id bigint,
+    parent_id bigint
+);
+
+
+ALTER TABLE public.mtm_lesson2client OWNER TO kingram;
+
+--
+-- Name: mtm_lesson2client_objid_seq; Type: SEQUENCE; Schema: public; Owner: kingram
+--
+
+CREATE SEQUENCE public.mtm_lesson2client_objid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.mtm_lesson2client_objid_seq OWNER TO kingram;
+
+--
+-- Name: mtm_lesson2client_objid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: kingram
+--
+
+ALTER SEQUENCE public.mtm_lesson2client_objid_seq OWNED BY public.mtm_lesson2client.objid;
+
+
+--
+-- Name: session_schedule; Type: TABLE; Schema: public; Owner: kingram
+--
+
+CREATE TABLE public.session_schedule (
+    objid bigint NOT NULL,
+    session_name character varying(25) DEFAULT NULL::character varying,
+    start_date date,
+    end_date date,
+    session_type smallint
+);
+
+
+ALTER TABLE public.session_schedule OWNER TO kingram;
+
+--
+-- Name: session_schedule_objid_seq; Type: SEQUENCE; Schema: public; Owner: kingram
+--
+
+CREATE SEQUENCE public.session_schedule_objid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.session_schedule_objid_seq OWNER TO kingram;
+
+--
+-- Name: session_schedule_objid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: kingram
+--
+
+ALTER SEQUENCE public.session_schedule_objid_seq OWNED BY public.session_schedule.objid;
+
+
+--
+-- Name: time_increments; Type: TABLE; Schema: public; Owner: kingram
+--
+
+CREATE TABLE public.time_increments (
+    objid bigint NOT NULL,
+    start_time time without time zone,
+    end_time time without time zone,
+    description character varying(255) DEFAULT NULL::character varying,
+    status smallint
+);
+
+
+ALTER TABLE public.time_increments OWNER TO kingram;
+
+--
+-- Name: time_increments_objid_seq; Type: SEQUENCE; Schema: public; Owner: kingram
+--
+
+CREATE SEQUENCE public.time_increments_objid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.time_increments_objid_seq OWNER TO kingram;
+
+--
+-- Name: time_increments_objid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: kingram
+--
+
+ALTER SEQUENCE public.time_increments_objid_seq OWNED BY public.time_increments.objid;
+
+
+--
+-- Name: zdoonotuse_times; Type: TABLE; Schema: public; Owner: kingram
+--
+
+CREATE TABLE public.zdoonotuse_times (
+    objid bigint NOT NULL,
+    start_time character(5) DEFAULT NULL::bpchar,
+    end_time character(5) DEFAULT NULL::bpchar
+);
+
+
+ALTER TABLE public.zdoonotuse_times OWNER TO kingram;
+
+--
+-- Name: zdoonotuse_times_objid_seq; Type: SEQUENCE; Schema: public; Owner: kingram
+--
+
+CREATE SEQUENCE public.zdoonotuse_times_objid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.zdoonotuse_times_objid_seq OWNER TO kingram;
+
+--
+-- Name: zdoonotuse_times_objid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: kingram
+--
+
+ALTER SEQUENCE public.zdoonotuse_times_objid_seq OWNED BY public.zdoonotuse_times.objid;
+
+
+--
+-- Name: appointment_schedule objid; Type: DEFAULT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.appointment_schedule ALTER COLUMN objid SET DEFAULT nextval('public.appointment_schedule_objid_seq'::regclass);
+
+
+--
+-- Name: clients objid; Type: DEFAULT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.clients ALTER COLUMN objid SET DEFAULT nextval('public.clients_objid_seq'::regclass);
+
+
+--
+-- Name: instructors objid; Type: DEFAULT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.instructors ALTER COLUMN objid SET DEFAULT nextval('public.instructors_objid_seq'::regclass);
+
+
+--
+-- Name: lesson_details objid; Type: DEFAULT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.lesson_details ALTER COLUMN objid SET DEFAULT nextval('public.lesson_details_objid_seq'::regclass);
+
+
+--
+-- Name: mtm_lesson2client objid; Type: DEFAULT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.mtm_lesson2client ALTER COLUMN objid SET DEFAULT nextval('public.mtm_lesson2client_objid_seq'::regclass);
+
+
+--
+-- Name: session_schedule objid; Type: DEFAULT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.session_schedule ALTER COLUMN objid SET DEFAULT nextval('public.session_schedule_objid_seq'::regclass);
+
+
+--
+-- Name: time_increments objid; Type: DEFAULT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.time_increments ALTER COLUMN objid SET DEFAULT nextval('public.time_increments_objid_seq'::regclass);
+
+
+--
+-- Name: zdoonotuse_times objid; Type: DEFAULT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.zdoonotuse_times ALTER COLUMN objid SET DEFAULT nextval('public.zdoonotuse_times_objid_seq'::regclass);
+
+
+--
+-- Data for Name: appointment_schedule; Type: TABLE DATA; Schema: public; Owner: kingram
+--
+
+COPY public.appointment_schedule (objid, created, lesson_detail_id, lesson_info, time_increment_id, start_time, end_time, lesson_type, instructor_id, instructor, client_id, client, confirmed, last_edit) FROM stdin;
+1	2021-03-25 17:11:45	1	8 Day -> Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	16	10:00:00	10:20:00	8	5	Elinor Effertz	7	Tamara Anderson	\N	\N
+2	2021-03-25 22:55:14	1	8 Day -> Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	16	10:00:00	10:20:00	8	8	Beryl Reynolds	22	Melissa Blue	\N	\N
+3	2021-03-25 22:56:35	1	8 Day -> Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	22	10:20:00	10:40:00	8	5	Elinor Effertz	30	Byron Burkhalter	\N	\N
+4	2021-03-25 22:56:45	1	8 Day -> Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	28	10:40:00	11:00:00	8	5	Elinor Effertz	31	Michelle Burns	\N	\N
+5	2021-03-25 23:17:29	1	8 Day -> Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	42	11:20:00	12:00:00	8	3	Stanley Stracke	40	Pi-o Chang	\N	\N
+23	2021-03-25 23:17:29	1	8 Day -> Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	16	10:00:00	10:20:00	8	11	Myah Waters	10	Phil & Patty Barbaccia	\N	\N
+6	2021-03-25 23:17:29	1	8 Day -> Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	16	10:00:00	10:20:00	8	4	Ariane Hansen	20	Nayan Amin	\N	\N
+24	2021-03-25 23:17:29	1	8 Day -> Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	16	10:00:00	10:20:00	8	12	Johathan Ritchie	120	Eric Bateman	\N	\N
+7	2021-03-25 23:17:29	1	8 Day -> Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	16	10:00:00	10:20:00	8	8	Beryl Reynolds	1	Lina Agarwal	\N	\N
+16	2021-03-25 23:17:29	1	8 Day -> Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	13	09:50:00	10:10:00	8	15	Jonathan Jacobi	99	Cynthia Holmes	\N	\N
+21	2021-03-25 23:17:29	1	8 Day -> Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	20	10:10:00	10:40:00	8	9	Candice Durgan	82	Mary Growitz	\N	\N
+\.
+
+
+--
+-- Data for Name: clients; Type: TABLE DATA; Schema: public; Owner: kingram
+--
+
+COPY public.clients (objid, first_name, last_name, dob, age, swim_ability, parent_name, parent_id, parent, student, filemaker, checked_paper_file, has_paper_file, from_labels, email, verified, notes, date_updated, update_notes) FROM stdin;
+1	Lina	Agarwal	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	sa268@pacbell.net	\N	Nisha, Neil	\N	\N
+2	Elizabeth	Aguilar	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	gbears@sbcglobal.net	\N	Rachel	\N	\N
+3	Connie	Ajlouni	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Helena, Grant	\N	\N
+4	Nayan	Amin	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+5	Andrei	Anderson	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Auston	\N	\N
+6	Carla	Anderson	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Harrison, Hunter	\N	\N
+7	Tamara	Anderson	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Luke Eselman	\N	\N
+8	Deborah	Ashley	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	dyurtin@yahoo.com	\N	Melissa	\N	\N
+9	Julie Ann	Baker	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	Lauren	\N	\N
+10	Phil & Patty	Barbaccia	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	patricia.barbaccia@flextronics.com	\N	Katlyn, Nicholas	\N	\N
+11	Gale & Greg	Bardel	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	bardelg@earthlink.net	\N	Kaci, Kyle	\N	\N
+12	Eric	Bateman	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	ericjbateman@hotmail.com,\r\nJudyBateman@hotmail.com	\N	Colleen Margaret	\N	\N
+13	Adrienne & Ron	Baument	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	Ronnie	\N	\N
+14	Kelle	Behrendt	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	krsa5678@sbcglobal.net	\N	Zachary Strauss	\N	\N
+15	Sarah	Benson	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	benson_sr@yahoo.com	\N	Dru, Weston	\N	\N
+16	Tiffany	Benton	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	tiffanybenton@marykay.com	\N	Katlyn, Treston	\N	\N
+17	Brian & Christina	Bernasconi	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	usadk@sbcglobal.net	\N	Dominic, Maia	\N	\N
+18	Nina	Bhat	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	ninabhat@pacbell.net	\N	Jaideep	\N	\N
+19	Debbie	Bingham	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	Jackson	\N	\N
+20	Bill	Black	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	David, Carissa	\N	\N
+21	Erin	Blodgett	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	eblodgett@mindspring.com	\N	Alyssa, Samantha	\N	\N
+22	Melissa	Blue	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	Alexandra, Charlotte	\N	\N
+23	Marlene	Bonomo	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	marlene801@aol.com	\N	Caitlyn	\N	\N
+24	Carolyn & Mitch	Botelho	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	carolynbotelho@sbcglobal.net	\N	Jordan, Madison	\N	\N
+25	Kathy	Bourland	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	Sydney, Tyler	\N	\N
+26	Teri	Breen	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	Michael	\N	\N
+27	ICC	Choe	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Justin Bae	\N	\N
+28	Julia	Bringuel	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	bringuel3@yahoo.com	\N	Eric	\N	\N
+29	Ann	Brown	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	brownfamily24@sbcglobal.net	\N	Brooke	\N	\N
+30	Byron	Burkhalter	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	prof@byronburkhalter.com	\N	Jackson, Olivia	\N	\N
+31	Michelle	Burns	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	mjburns@comcast.net	\N	Adam, Allyson, Ashley	\N	\N
+32	BJ	Bushur	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	bj@uresults.com	\N	Cole, Rex	\N	\N
+33	Christine	Campbell	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	chrissyplus2@sbcglobal.net	\N	Ryan,Lyndsey	\N	\N
+34	Julie	Cardona	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Grace	\N	\N
+35	Christy	Carrasquilla	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	ccarrasquilla@sbcglobal.net	\N	Kyle, Connor	\N	\N
+36	Heidi	Castro	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Andre	\N	\N
+37	Dave	Cayori	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Sabrina Jones	\N	\N
+38	Angela	Cerrito	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Rosario	\N	\N
+39	Trudy	Cervantes	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Gabriele	\N	\N
+40	Pi-o	Chang	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Elaine Kao	\N	\N
+41	Jean	Chang	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Joshua Chen, Jadis Chen	\N	\N
+42	Brenda	Cheung	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Damian	\N	\N
+43	Tina	Chiou	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+44	Carol	Chiu	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Joseph, Katie	\N	\N
+45	Ashley	Choi	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Aaron Choi, Sean Sananikone	\N	\N
+46	Cindy	Coelho	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Marissa	\N	\N
+47	Joanne	Coleman	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	joannequilts@gmail.com, chalared@gmail.com	\N	Alex Grimm, Charlie Grimm	\N	\N
+48	Dyanne	Compton	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Emma	\N	\N
+49	Peter	Contini	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Vincent	\N	\N
+50	Joan	Corbett	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	joan@corbe.tt	\N	Rachel	\N	\N
+51	Charlene	Cornell	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	dencharty@sbcglobal.net	\N	Tyler,Allison	\N	\N
+52	Karen	Crabtree	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	karen.crabtree75@gmail.com	\N	Madison	\N	\N
+53	Miriam	Craft	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+54	Terry	Davis	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+55	Angela	Dima	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	apdima@verizon.net	\N	Alissa Reed, Aaron Reed	\N	\N
+56	Dina	Duckworth	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Heather, Chloe	\N	\N
+57	Reiko	Dunne	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	reikodunne@aol.com	\N	Sydney	\N	\N
+58	Smita	Duorah	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	s_duorah@yahoo.com	\N	Amitar Baruah,Nandini Baruah	\N	\N
+59	Heather	Durham	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	cinderh26@yahoo.com	\N	Abby	\N	\N
+60	Jennifer	Edgar	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Cora	\N	\N
+61	Rachel	Elsey	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Parker	\N	\N
+62	Mitra	Emami	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	mitraemami@sbcglobal.net	\N	Kiana Malek	\N	\N
+63	Karen	Fang	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Patrick	\N	\N
+64	Debra	Fant	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Kaitlyn	\N	\N
+65	Laurie	Faris	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Logan, Briana	\N	\N
+66	Kathy	Belick	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	kbelick@sgi.com	\N	Kayla	\N	\N
+67	Victoria	Farrell	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Molly Lyon	\N	\N
+68	Melissa	Fenton	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Mikaela	\N	\N
+69	Doris	Figueroa	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Ethan	\N	\N
+70	Camille	Filizetti	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Jacqueline	\N	\N
+71	Junko	Fischer	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Amy	\N	\N
+72	Tricia & Mark	Foster	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Tristan, Ireland	\N	\N
+73	Gina	Freitag	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Evan	\N	\N
+74	Dodi	Friedenberg	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Talia, Isaac	\N	\N
+75	Jon & Linda	Garbarino	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Matthew, Natalie	\N	\N
+76	Stacie	Gardner	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Ryan	\N	\N
+77	Mindy	George	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	mindylugeorge@aol.com	\N	Evan Albers	\N	\N
+78	Malavika	Ghosh	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	mgghosh@aol.com	\N	Rishav	\N	\N
+79	Rebecca	Giacinto	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Anthony	\N	\N
+80	Chris	Gonzales	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Lizzie, Addy, Spenser	\N	\N
+81	Nicolette & Keith	Gordon	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	nicolettegordon@gmail.com	\N	Ryan - 9/1/00\r\nAnnika - 4/25/02\r\nElla - 3/15/06	2013-02-15 13:18:54	\N
+82	Mary	Growitz	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	growitz@hotmail.com	\N	Sarah, Katie	\N	\N
+83	Shelly	Guerra	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Katie	\N	\N
+84	Melinda	Gurrola	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Kyle, Matthew	\N	\N
+85	Sue	Gutierrez	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Daevon	\N	\N
+86	Tammi	Hall	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Brooke	\N	\N
+87	Barbara	Hartman	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Elvis,Taite	\N	\N
+88	Charles & Laura	Hartsog	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	papabear@ussoils.com	\N	Janelle,Beth	\N	\N
+89	Della	Hashtpari	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Shiva,Nina	\N	\N
+90	Denise & Richard	Hayashi	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Jennifer,Jack	\N	\N
+91	Anne	Hayden	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	a7hayden@sbcglobal.net	\N	Julia	2013-02-25 15:03:19	Update email info
+92	Karen	Hayes	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Brian,Marie	\N	\N
+93	Linda & Roger	Henson	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Makayla,Joshua	\N	\N
+94	Angela	Henze	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	aoutlook@yahoo.com	\N	Everst,Bryce	\N	\N
+95	Stephanie	Hiebert	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Michael,Claire	\N	\N
+96	Lisa	Higdon	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	lhigdon@comcast.net	\N	Kyle,Alexa	\N	\N
+97	Dianne	Hill	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Travis	\N	\N
+98	Jill	Hoge	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Braedon,Erin	\N	\N
+99	Cynthia	Holmes	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Jaden	\N	\N
+100	Susie	Hotelling	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Spencer, Nicholas	\N	\N
+101	Sheri	Howarth	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Abby	\N	\N
+102	Shu-Yi	Hsu	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+103	Susan	Huang	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	susanhuang10@yahoo.com	\N	Christopher	\N	\N
+104	Teresa & David	Huntley	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Elizabeth,Hannah	\N	\N
+105	Yumi	Hur	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	\N	\N	\N
+106	Eduardo	Ibarra	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+107	Gay	Imaino	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Kaitlyn	\N	\N
+108	Anne	Jablonski	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	anne.jablonski@ey.com	\N	Andrew Carrasquillo	\N	\N
+109	Dawn	Jamieson	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Sarah, Alysha,Joshua,Cameron,Riley	\N	\N
+110	Juliet	Jarrami	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+111	Lina	Jisser	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+112	Heather	Johnson	\N	\N	\N	\N	\N	1	\N	1	1	\N	\N	\N	\N	Garrett,Mitchell	\N	\N
+113	Haleh	Karimian	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Sormeh	\N	\N
+114	Anne	Kelker	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	kkelker@aol.com	\N	Patrick	\N	\N
+115	Sima	Khorshidian	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	momonsima@yahoo.com	\N	Cyrus, Auria	\N	\N
+116	Eun Joo	Kim	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Yoonyoung	\N	\N
+117	Michelle	Kim	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Sydney	\N	\N
+118	Seon	Kim	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	Yoonwoo	\N	\N
+119	Christina	Kojima	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	cckojima@yahoo.com	\N	Megan	\N	\N
+120	Tamara	Kok	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Quan	\N	\N
+121	Diana	Krek	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Alexia Choochagi,Louise Choochagi	\N	\N
+122	Kate	LaBarbera	\N	\N	\N	\N	\N	1	\N	1	\N	0	\N	\N	\N	\N	\N	\N
+123	Suzanna	Lam	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Lam-Chi Pham	\N	\N
+124	Lisa	Lambert	\N	\N	\N	\N	\N	1	\N	1	\N	0	\N	\N	\N	\N	\N	\N
+125	Mona	Lee	\N	\N	\N	\N	\N	1	\N	1	\N	0	\N	\N	\N	\N	\N	\N
+126	Jinwon	Lee	\N	\N	\N	\N	\N	1	\N	1	\N	0	\N	\N	\N	\N	\N	\N
+127	Julie	Lee	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Mackenzie, Susanna	\N	\N
+128	Darline	Lohman	\N	\N	\N	\N	\N	1	\N	1	\N	0	\N	\N	\N	\N	\N	\N
+129	Michelle	Lohn	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Evan	\N	\N
+130	Kimberly	Lopez	\N	\N	\N	\N	\N	1	\N	1	\N	0	\N	\N	\N	\N	\N	\N
+131	Tracey	Lovegren	\N	\N	\N	\N	\N	1	\N	1	\N	0	\N	\N	\N	\N	\N	\N
+132	Maria	Lu	\N	\N	\N	\N	\N	1	\N	1	\N	0	\N	\N	\N	\N	\N	\N
+133	Ninette	Maass	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	jmaass7@verizon.net	\N	Pierson, Julian	\N	\N
+134	Carl	Magina	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	cbmagina@earthlink.net	\N	Aidan,Common	\N	\N
+135	Mandi	Madani	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+136	Barbara	Maguire	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	uclababs@aol.com	\N	David	\N	\N
+137	Connie	Mai	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	gktech@yahoo.com	\N	Alyssa, Maya Enriquez	\N	\N
+138	Michelle	Maldonado	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	gus_michelle@yahoo.com	\N	Ethan,Aiden	\N	\N
+139	Lisa & Todd	Manley	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	lisamanley@yahoo.com	\N	Logan,Tate	\N	\N
+140	Olga	Mavrogenes	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Mana	\N	\N
+141	Ingrid	McCann	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Kristina	\N	\N
+142	Ingrid	McCarroll	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Kelley,Rachel	\N	\N
+143	Carol	McDonald	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Kyle	\N	\N
+144	Lisa	McKibbon	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+145	Sue	McLaughlin	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	suewini@yahoo.com	\N	Jack	\N	\N
+146	Tym	Meeker	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+147	Trupti	Mehta	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	truptismehta@yahoo.com	\N	Kunal,Rayna	\N	\N
+148	Sue	Michalicek	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Kevin,Ryan	\N	\N
+149	Chrissy	Migliore	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Melia,Kelsey	\N	\N
+150	Ana	Mino	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+151	Parisa	Molanazadeh	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	pmolanazadeh@hotmail.com	\N	Sofia Daroodi - 12/25/03	2013-02-15 14:15:36	\N
+152	Cara	Morgan	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+153	Ladan	Moshtaghi	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	lmoshtagi@yahoo.com	\N	Noora Soroushnejad - 9/3/2002	2013-02-15 14:16:02	\N
+154	Joe & Michelle	Moura	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Lexie,Meagan,Nick	\N	\N
+155	Laura	Murphy-Wilkens	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Johnny, Tommy	\N	\N
+156	Paula	Myers	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Carson(f),Reese(m)	\N	\N
+157	Sabina	Nat	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+158	Ann-Marie	Nelson	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+159	Doreen	Nelson	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+160	Tho	Nguyen	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	My Hoang, Chi Hoang	\N	\N
+161	Kim & Steve	Nichol	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Samantha	\N	\N
+162	Leda	Nielson	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+163	Gai & Jeff	Nightingale	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	gai_nightingale@yahoo.com	\N	Chasen, Kailey	\N	\N
+164	Amy	O'Hehir	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+165	Lupe	Olson	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Neil	\N	\N
+166	Jennifer	Omura	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	jfomura@yahoo.com	\N	Brandon,Taylor	\N	\N
+167	Melynda	Orcutt	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	msorcutt@pacbell.net	\N	Pearson	\N	\N
+168	Margarita	Orrego	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	leobis52@gmail.com	\N	Paula	\N	\N
+169	Beth	Orth	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	baorth@yahoo.com	\N	Connor, Kyle	\N	\N
+170	Kristen	Osorio	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	\N	\N	\N
+171	Yuko	Ostrowski	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+172	Steve & Winnie	Pagan	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	thepagans@sbcglobal.net	\N	Sarah, Nicole 5/7/03	\N	\N
+173	Jacque	Page	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Shelby	\N	\N
+174	Lisa	Paige	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+175	Alan & Monica	Pal	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Nina	\N	\N
+176	Karen	Palermo	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Leo	\N	\N
+177	Sandy	Palicio	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Max	\N	\N
+178	Amy & Michael	Palmaffy	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	palmaffy@pacbell.net	\N	Brodey, Kelsey	\N	\N
+179	Tim	Pantiga	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N		\N	\N	\N	\N
+180	Tammy	Parcella	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Trevor	\N	\N
+181	Miyoung	Park	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+182	Jenny	Parker	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	jxparker@hotmail.com	\N	Athena, Natasha	\N	\N
+183	Rebecca	Pasquinelli	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+184	Rachana	Patel	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+185	Suzanne	Paullin	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+186	Jennifer	Penick	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	jtpenick@comcast.net	\N	Kyle,Ashlyn,Erin,Christopher	\N	\N
+187	Kris	Peretti	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Antonio,Isabella	\N	\N
+188	Catherine	Perrino	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	palmaffy@pacbell.net	\N	Annabella,Zachary	\N	\N
+189	Ron	Perrotta	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N		\N	\N	\N	\N
+190	Lesley	Pesek	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+191	Chuong	Pham	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Leta	\N	\N
+192	Noralie	Pillon	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+193	Tricia	Pizzo	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Samantha	\N	\N
+194	Heidi	Preston	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Emma	\N	\N
+195	Connie	Qiu	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Karen	\N	\N
+196	Sharareh	Rafizadeh	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Desiree, Adrian	\N	\N
+197	Courtaney	Rampelberg	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+198	Theresa	Remaker	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Matt	\N	\N
+199	Maya	Rhodes	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Matt	\N	\N
+200	Cheryl	Roffey	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	\N	\N	\N
+201	Renay	Rosckes	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+202	Cheryl	Rosenberg	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+203	Michael & Shannon	Rouiller	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	shannon_rouiller@yahoo.com	\N	Brent	\N	\N
+204	Shannon	Ruth	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	ridleyruth@hotmail.com	\N	Ridley	\N	\N
+205	Farah	Saeb	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	farahsaeb@yahoo.com	\N	Shiva Sadeghi	\N	\N
+206	Janet & Sam	Salatt	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Andre	\N	\N
+207	Lucia	Santucci	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Tommy	\N	\N
+208	Puneet & Sonia	Sawhney	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	sawhneyp@pacbell.net	\N	Akhil	\N	\N
+209	Rhea	Schmitz	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Benjamin	\N	\N
+210	Lesley & Eric	Schwertley	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Savannah,Sabrina	\N	\N
+211	Julie	Seawright	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Tyler,Kaitlyn	\N	\N
+212	Natalie	Seratti	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	natalieseratti@comcast.net	\N	Sierra,Zachary,Benjamin,	\N	\N
+213	Beena	Shankar	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+214	Allison	Shaw	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+215	Atour	Shehadeh	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Daniel,Nathan	\N	\N
+216	Denise	Shenefiel	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+217	Sunita	Singh	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+218	Renee	Smaha	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Jake,Mia	\N	\N
+219	Katherine	Smith	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	klosmith@pacbell.net	\N	Austin,Hannah	\N	\N
+220	Kelly & Patty	Snow	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	pattymsnow@yahoo.com	\N	Cassie	\N	\N
+221	Susan	Snyder-Ando	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Jordan,Mika	\N	\N
+222	Susana	Sobouti	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	susana_sobouti@hotmail.com	\N	Kiana	\N	\N
+223	Sheri	Sorensen	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+224	Sandy	Spiga	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Adrian	\N	\N
+225	Mary Alice	Springborn	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Faith	\N	\N
+226	Katy	Stamos	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	mkstamos@comcast.net	\N	Sara,Zoe	\N	\N
+227	Tina	Starr	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	swiss_starr@yahoo.com	\N	Brigitte,Carina	2013-02-25 15:03:19	Update email info
+228	Frederica	Stearns	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+229	Kelly	Steinkamp	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	thesteinkamps@sbcglobal.net	\N	Jakes,Lindsey	\N	\N
+230	Raji	Swaminathan	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+231	Katie	Swenson	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Lily,Garrett	\N	\N
+232	Christa	Tallman	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Ryan	\N	\N
+233	Elizabeth	Tate	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+234	Lorraine	Tatsukawa	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Katie,Emily	\N	\N
+235	Lucy	Taylor	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	lucy_a_taylor@yahoo.com	\N	Laura,Eric	\N	\N
+236	Cheryl	Togami	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Taylor	\N	\N
+237	Muriel	Townze	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+238	Terri	Unangst	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+239	Kelly	Valasquez	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+240	Terry & Lisa	Valine	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Joe	\N	\N
+241	Amy	Valine	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Isabella	\N	\N
+242	Kristen	Vehling	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	kvehling@yahoo.com	\N	Annika - 2/14/2002\r\nElizabeth - 	\N	\N
+243	Sharon	Wada	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	wadavision@earthlink.net	\N	Timmy	\N	\N
+244	Laurie	Walker	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Leila	\N	\N
+245	Colleen & Eric	Walczykowski	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Taylor	\N	\N
+246	Ellen	Wang	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+247	Linda	Wang	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	lnhw@yahoo.com	\N	Hannah,Matthew	\N	\N
+248	Mark & Karin	Watanabe	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Taylor	\N	\N
+249	Bridget	Watson	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Aleksei, Ethan	\N	\N
+250	Heather & Steve	Wick	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	hwick@clinimetrics.com	\N	Tyler,Kierstin	\N	\N
+251	Scott & Christina	Wiebe	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	wiebe5@sbcglobal.net	\N	Christian,Owen,Jake	\N	\N
+252	Katie	Williams	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Sarah,Christopher	\N	\N
+253	Rob & Kristen	Woll	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Faith	\N	\N
+254	May	Wone	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Jeremy Lee	\N	\N
+255	Lillian	Wong	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	lchang6737@yahoo.com	\N	Nicholas	2013-02-25 15:03:19	Update email info
+256	Gregory	Wong	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Nathan	\N	\N
+257	Vendy	Wong	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+258	Melinda	Wong	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Melissa,Tyler	\N	\N
+259	Krystal	Woodworth	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Blake	\N	\N
+260	Michelle	Woolridge	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	mwoolridge@hotmail.com	\N	Alyssa	\N	\N
+261	Mark & Grace	Wright	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	\N	\N	Ashlyn,Matthew	\N	\N
+262	Yuyen	Yang	\N	\N	\N	\N	\N	1	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+263	Wei	Zhang	\N	\N	\N	\N	\N	1	\N	1	1	1	\N	weiwang7349@yahoo.com	\N	Mary	\N	\N
+264	Nisha	Agarwal	\N	13	\N	Lina Agarwal	1	0	1	1	\N	\N	\N	\N	\N	\N	2013-02-15 15:20:00	\N
+265	Neil	Agarwal	\N	10	\N	Lina Agarwal	1	0	1	1	\N	\N	\N	\N	\N	\N	2013-02-15 15:19:56	\N
+266	Rachel	Aguilar	\N	3.5	\N	Elizabeth Aguilar	2	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+267	Helena	Ajlouni	\N	5.5	\N	Connie Ajlouni	3	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+268	Grant	Ajlouni	\N	4	\N	Connie Ajlouni	3	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+269	Preet	Amin	\N	6.5	\N	Nayan Amin	4	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+270	Ryan	Edelman	\N	10	\N	Tamara Anderson	7	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+271	Harrison	Anderson	\N	5	\N	Carla Anderson	6	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+272	Emma	Edelman	\N	7	\N	Tamara Anderson	7	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+273	Auston	Anderson	\N	11	\N	Andrei Anderson	5	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+274	Luke	Edelman	\N	5	\N	Tamara Anderson	7	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+275	Melissa	Ashley	\N	8	\N	Deborah Ashley	8	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+276	Lauren	Baker	\N	4	\N	Julie Ann Baker	9	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+277	Nicholas	Barbaccia	\N	3	\N	Patty Barbaccia	10	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+278	Katlyn	Barbaccia	\N	6	\N	Patty Barbaccia	10	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+279	Kaci	Bardel	\N	3.5	\N	Gale & Greg Bardel	11	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+280	Kyle	Bardel	\N	5	\N	Gale & Greg Bardel	11	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+281	Colleen	Bateman	\N	6	\N	Eric Bateman	12	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+282	James	Baument	\N	3.5	\N	Adrienne & Ron Baument	13	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+284	Zachary	Strauss	\N	7	\N	Kelle Behrendt	14	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+285	Dru	Benson	\N	5.5	\N	Sarah Benson	15	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+286	Weston	Benson	\N	2.5	\N	Sarah Benson	15	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+287	Katlyn	Benton	\N	7	\N	Tiffany Benton	16	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+288	Treston	Benton	\N	4	\N	Tiffany Benton	16	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+289	Dominic	Bernasconi	\N	1	\N	Brian & Christina Bernasconi	17	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+290	Jaideep	Bhat	\N	7	\N	Nina Bhat	18	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+291	Jackson	Bingham	\N	5	\N	Debbie Bingham	19	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+292	Carrisa	Black	\N	8	\N	Bill Black	20	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+293	Jonathan	Black	\N	8	\N	Bill Black	20	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+294	David	Black	\N	8	\N	Bill Black	20	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+295	Samantha	Blodgett	\N	7	\N	Erin Blodgett	21	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+296	Alyssa	Blodgett	\N	4	\N	Erin Blodgett	21	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+297	Alexandra	Blue	\N	7	\N	Melissa Blue\n	22	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+298	Charlotte	Blue	\N	4	\N	Melissa Blue\n	22	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+299	Caitlyn	Bonomo	\N	5	\N	Marlene Bonomo	23	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+300	Madison	Botelho	\N	3.5	\N	Carolyn & Mitch Botelho	24	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+301	Jordan	Botelho	\N	5.5	\N	Carolyn & Mitch Botelho	24	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+302	Tyler	Bourland	\N	2	\N	Kathy Bourland	25	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+303	Sydney	Bourland	\N	4	\N	Kathy Bourland	25	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+304	Michael	Breen	\N	11 mo.	\N	Teri Breen	26	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+305	Kristen	Breen	\N	6.	\N	Tei Breen	26	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+306	Eric	Bringuel	\N	8	\N	Julia Bringuel	28	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+307	Brooke	Brown	\N	4.5	\N	Ann Brown	29	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+308	Jackson	Burkhalter	\N	6	\N	Byron Burkhalter	30	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+309	Adam	Burns	\N		\N	Michelle Burns	31	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+310	Ashley	Burns	\N	6	\N	Michelle Burns	31	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+311	Cole	Bushur	\N	5	\N	BJ Bushur	32	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+312	Rex	Bushur	\N	3	\N	BJ Bushur	32	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+313	Lyndsey	Campbell	\N	8	\N	Christine Campbell	33	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+314	Ryan	Campbell	\N	8	\N	Christine Campbell	33	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+315	Grace	Cardona	\N	8	\N	Julie Cardona	34	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+316	Connor	Carrasquilla	\N	5	\N	Christy Carrasquilla	35	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+317	Kyle	Carrasquilla	\N	7.5	\N	Christy Carrasquilla	35	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+318	Ryan	Carrasquilla	\N	5	\N	Christy Carrasquilla	35	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+319	Andre	Castro	\N	4	\N	Heidi Castro	36	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+320	Sabrina	Jones	\N	6	\N	Dave Cayori	37	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+321	Giovanni	Cerrito	\N	5	\N	Angela Cerrito	38	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+322	Rosario	Cerrito	\N	7	\N	Angela Cerrito	38	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+323	Gabriele	Cervantes	\N	7	\N	Trudy Cervantes	39	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+324	Elaine	Kao	\N	11	\N	Pi-o Chang	40	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+325	Jadis	Chen	\N	5	\N	Jean Chang	41	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+326	Joshua	Chen	\N	5	\N	Jean Chang	41	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+327	Damian	Cheung	\N	5	\N	Brenda Cheung	42	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+328	Bryanna	Cheung	\N	8	\N	Brenda Cheung	42	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+329	Max	Bi	\N	6	\N	Tina Chiou	43	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+330	Katie	Chiu	\N	7	\N	Carol Chiu	44	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+331	Joseph	Chiu	\N	5	\N	Carol Chiu	44	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+332	Sean	Sananikane	\N	6	\N	Ashley Choi	45	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+333	Aaron	Choi	\N	6	\N	Ashley Choi	45	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+334	Marissa	Coelho	\N	3	\N	Cindy Coelho	46	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+335	Charlie	Coleman	\N	8	\N	Joanne Coleman	47	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+336	Alex	Coleman	\N	8	\N	Joanne Coleman	47	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+337	Emma	Compton	\N	3/5	\N	Dyanne Compton	48	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+338	Joseph	Contini	\N	5	\N	Peter Contini	49	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+339	Vincent	Contini	\N	3.5	\N	Peter Contini	49	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+340	Zach	Contini	\N	8.5	\N	Peter Contini	49	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+341	Rachel	Corbett	\N	4	\N	Joan Corbett	50	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+342	Tyler	Cornell	\N	9	\N	Charlene Cornell	51	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+343	Allison	Cornell	\N	7	\N	Charlene Cornell	51	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+344	Madison	Nichols	\N	4	\N	Karen Crabtree	52	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+345	Brett	Craft	\N	5	\N	Miriam Craft	53	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+346	Zachary	Davis	\N	2	\N	Terry Davis	54	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+347	Alissa	Reed	\N	6	\N	Angela Dima	55	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+348	Aaron	Reed	\N	2	\N	Angela Dima	55	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+349	Chloe	Duckworth	\N	6	\N	Dina Duckworth	56	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+350	Heather	Duckworth	\N	4	\N	Dina Duckworth	56	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+351	Sydney	Dunne	\N	4	\N	Reiko Dunne	57	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+352	Nandini	Duorah	\N		\N	Smita Duorah	58	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+353	Amitav	Duorah	\N	5.5	\N	Smita Duorah	58	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+354	Abby	Durham	\N	4.5	\N	Heather Durham	59	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+355	Cora	Edgar	\N	6	\N	Jennifer Edgar	60	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+356	Parker	Elsey	\N	6	\N	Rachel Elsey	61	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+357	Kimiya	Emami	\N	8	\N	Mitra Emami	62	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+358	Kiana	Emami	\N	5	\N	Mitra Emami	62	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+359	Patrick	Fang	\N	7	\N	Karen Fang	63	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+360	Kaitlyn	Fant	\N	2	\N	Debra Fant	64	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+361	Brendan	Fant	\N	5	\N	Debra Fant	64	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+362	Shaun	Fant	\N	6.5	\N	Debra Fant	64	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+363	Briana	Faris	\N	11	\N	Laurie & Mary Faris	65	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+364	Logan	Faris	\N	6	\N	Laurie & Mary Faris	65	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+365	Molly	Lyons	\N	8	\N	Victoria Farrell	67	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+366	Mikaela	Fenton	\N	8	\N	Melissa Fenton	68	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+367	Aaron	Fenton	\N	6	\N	Melissa Fenton	68	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+368	Ethan	Figueroa	\N	7	\N	Doris Figueroa	69	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+369	Jacqueline	Filizetti	\N	8	\N	Camille Filizetti	70	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+370	Amy	Fischer	\N	12	\N	Junko Fischer	71	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+371	Ireland	Foster	\N	4	\N	Tricia Foster	72	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+372	Tristan	Foster	\N	6	\N	Tricia Foster	72	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+373	Evan	Freitag	\N	4.5	\N	Gina Freitag	73	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+374	Talia	Friedenberg	\N	9	\N	Dodi Friedenberg	74	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+375	Isaac	Friedenberg	\N	6	\N	Dodi Friedenberg	74	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+376	Matthew	Garbarino	\N	6	\N	Jon & Linda Garbarino	75	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+377	Natalie	Garbarino	\N	4	\N	Jon & Linda Garbarino	75	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+378	Ryan	Gardner	\N	5	\N	Stacie Gardner	76	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+379	Evan	Albers	\N	8	\N	Mindy George	77	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+380	Rishav	Ghosh	\N	8	\N	Malavika Ghosh	78	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+381	Anthony	Giacinto	\N	5	\N	Rebecca Giacinto	79	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+382	Spenser	Gonzales	\N	11	\N	Chris Gonzales	80	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+383	Addy	Gonzales	\N	6	\N	Chris Gonzales	80	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+384	Ryan	Gordon	2000-09-01	6.5	\N	Nicolette & Keith Gordon	81	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+385	Annika	Gordon	2002-04-25	5	\N	Nicolette & Keith Gordon	81	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+386	Sarah	Growitz	\N	10	\N	Mary Growitz	82	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+387	Katie	Growitz	\N	7	\N	Mary Growitz	82	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+388	Jarrod	Guerra	\N	7.5	\N	Shelly Guerra	83	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+389	Katie	Guerra	\N	4	\N	Shelly Guerra	83	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+390	Matthew	Gurrola	\N	7	\N	Melimda Gurrola	84	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+391	Kyle	Gurrola	\N	11	\N	Melimda Gurrola	84	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+392	Daevon	Gutierrez	\N	3.5	\N	Sue Gutierrez	85	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+393	Brooke	Hall	\N	5	\N	Tammi Hall	86	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+394	Elvis	Hartman	\N		\N	Barbara Hartman	87	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+395	Taite	Hartman	\N		\N	Barbara Hartman	87	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+396	Beth	Hartsog	\N	8	\N	Charles & Laura Hartsog	88	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+397	Shiva	Haspapari	\N	7	\N	Della Haspapari	89	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+398	Nina	Haspapari	\N	5	\N	Della Haspapari	89	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+399	Jennifer	Hayashi	\N	6	\N	Denise & Richard Hayashi	90	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+400	Jack	Hayashi	\N	3	\N	Denise & Richard Hayashi	90	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+401	Ben	Hayden	\N	10	\N	Anne Hayden	91	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+402	Hannah	Hayden	\N	8	\N	Anne Hayden	91	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+403	Julia	Hayden	\N	5	\N	Anne Hayden	91	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+404	Marie	Hayes	\N	5	\N	Karen Hayes	92	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+405	Brian	Hayes	\N	8	\N	Karen Hayes	92	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+406	Joshua	Hensen	\N	6	\N	Linda Hensen	93	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+407	McKayla	Hensen	\N	9	\N	Linda Hensen	93	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+408	Everest	Henze	\N	6	\N	Angela Henze	94	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+409	Bryce	Henze	\N	3	\N	Angela Henze	94	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+410	Claire	Hiebert	\N	4	\N	Stephanie Hiebert	95	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+411	Michael	Hiebert	\N	5	\N	Stephanie Hiebert	95	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+412	Kyle	Higdon	\N	7	\N	Lisa Higdon	96	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+413	Alexa	Higdon	\N	4	\N	Lisa Higdon	96	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+414	Travis	Hill	\N	4.5	\N	Dianne Hill	97	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+415	Braedon	Hoge	\N	5	\N	Jill Hoge	98	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+416	Erin	Hoge	\N	3	\N	Jill Hoge	98	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+417	Jaden	Holmes	\N		\N	Cynthia Holmes	99	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+418	Spence	Hotelling	\N	7	\N	Susie Hotelling	100	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+419	Nicholas	Hotelling	\N	4.5	\N	Susie Hotelling	100	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+420	Abby	Howarth	\N	5.5	\N	Sheri Howarth	101	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+421	Howard	Hsu	\N	6	\N	Shu-Yi Hsu	102	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+422	Henderson	Hsu	\N	9	\N	Shu-Yi Hsu	102	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+423	Ryan	Huang	\N	7	\N	Susan Huang	103	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+424	Christopher	Huang	\N	3	\N	Susan Huang	103	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+425	Elizabeth	Huntley	\N	4.5	\N	Teresa & David Huntley	104	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+426	Hannah	Huntley	\N	4.5	\N	Teresa & David Huntley	104	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+427	Sang Gi	Hur	\N	7	\N	Yumi Hur	105	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+428	Francisco	Triarrg	\N		\N	Eduardo Ibarra	106	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+429	Eduardo	Triarrg	\N		\N	Eduardo Ibarra	106	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+430	Kaitlyn	Imaino	\N	6.5	\N	Gay Imaino	107	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+431	Andrew	Carrasquillo	\N	4	\N	Anne Jablonski	108	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+432	Sarah	Jamieson	\N	8	\N	Dawn Jamieson	109	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+433	Joshua	Jamieson	\N	5	\N	Dawn Jamieson	109	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+434	Cameron	Jamieson	\N	5	\N	Dawn Jamieson	109	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+435	Alysha	Jamieson	\N	7	\N	Dawn Jamieson	109	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+436	Riley	Jamieson	\N	7	\N	Dawn Jamieson	109	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+437	Hanna	Jarrami	\N	5	\N	Juliet Jarrami	110	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+438	Carina	Jisser	\N	4	\N	Lina Jisser	111	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+439	Mitchell	Johnson	\N	2	\N	Heather Johnson	112	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+440	Sormeh	Kariman	\N	7	\N	Haleh Kariman	113	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+441	Patrick	Kelker	\N	8	\N	Anne Kelker	114	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+442	Sean	Kelker	\N	8	\N	Anne Kelker	114	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+443	Cyrys	Zoimorrodi	\N	7	\N	Sima Khrshidian	115	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+444	Aurya	Zoimorrodi	\N	4	\N	Sima Khrshidian	115	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+445	Yoon Woo	Kim	\N	7	\N	Sean Kim	116	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+446	Sydney	Kim	\N	8	\N	Michele Kim	117	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+447	Yoonyoung	Kim	\N	8	\N	Eun Joo Kim	118	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+448	Megan	Kojima	\N	4.5	\N	Christina Kojima	119	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+449	Evan	Kojima	\N	8	\N	Christina Kojima	119	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+450	Meili	Kok	\N	10	\N	Tamara Kok	120	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+451	Tian	Kok	\N	8	\N	Tamara Kok	120	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+452	Quan	Kok	\N	4.5	\N	Tamara Kok	120	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+453	Alexia Choo	Chagi	\N	5	\N	Diana Krek	121	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+454	Faith	LaBarbera	\N	5	\N	Kate LaBarbera	122	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+455	Lam-Chi	Lam	\N	5	\N	Suzanna Lam	123	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+456	Khoi	Lam	\N	3.5	\N	Suzanna Lam	123	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+457	Taylor	Lambert	\N	7	\N	Lisa Lambert	124	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+458	Josh	Lambert	\N	9	\N	Lisa Lambert	124	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+459	Susanna	Lee	\N	11	\N	Julie Lee	125	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+460	Alexander	Lee	\N	5	\N	Mona Lee	127	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+461	Bradford	Lee	\N	7	\N	Mona Lee	127	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+462	Yena	Jeong	\N	9	\N	Jinwon Lee	126	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+463	MacKenzie	Lee	\N	6	\N	Julie Lee	125	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+464	Julia	Lohman	\N	7	\N	Darline Lohman	128	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+465	Evan	Lohn	\N	8	\N	Michelle Lohn	129	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+466	Robert	Lopez	\N	8	\N	Kimberly Lopez	130	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+467	Richard	Lopez	\N	8	\N	Kimberly Lopez	130	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+468	Nils	Lovegren	\N	6	\N	Tracey Lovegren	131	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+469	Katrina	Lovegren	\N	4	\N	Tracey Lovegren	131	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+470	Emily	Wong	\N	11	\N	Maria Lu	132	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+471	Pierson	Maass	\N	5	\N	Ninette Maass	133	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+472	Aidan	Dirkmann	\N	5	\N	Carl Magina	134	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+473	Matthew	Dirkmann	\N	6	\N	Carl Magina	134	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+474	Ariaz	Madani	\N	7.5	\N	Mandi Madani	135	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+475	David	Maguire	\N	3	\N	Barbara Maguire	136	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+476	Allyssa	Mai	\N	5	\N	Connie Mai	137	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+477		Mai	\N	11	\N		\N	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+478	Maya	Enriquez	\N	4	\N	Connie Mai	137	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+479	Ethan	Maldonado	\N	5	\N	Michelle Maldonado	138	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+480	Tate	Manley	\N	3	\N	Lisa & Todd Manley	139	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+481	Logan	Manley	\N	5	\N	Lisa & Todd Manley	139	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+482	Mana	Mavrogenes	\N	5.5	\N	Olga Mavrogenes	140	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+483	Kristina	McCann	\N	3.5	\N	Ingrid McCann	141	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+484	Andrew	McCann	\N	7	\N	Ingrid McCann	141	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+485	Kelley	McCarroll	\N	7	\N	Ingrid McCarroll	142	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+486	Rachel	McCarroll	\N	4	\N	Ingrid McCarroll	142	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+487	Kyle	McDonald	\N	8	\N	Carol McDonald	143	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+488	Morgan	McKibbon	\N	3	\N	Lisa McKibbon	144	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+489	Jack	McLaughlin	\N	3.5	\N	Sue McLaughlin	145	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+490	Kait	McLaughlin	\N	5.5	\N	Sue McLaughlin	145	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+491	Andrew	Meeker	\N	7	\N	Tym Meeker	146	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+492	Betsy	Meeker	\N	12	\N	Tym Meeker	146	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+493	Kunal	Mehta	\N	12	\N	Trupti Mehta	147	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+494	Rayna	Mehta	\N	8	\N	Trupti Mehta	147	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+495	Kevin	Michalicek	\N	5	\N	Sue Michalicek	148	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+496	Ryan	Michalicek	\N	5	\N	Sue Michalicek	148	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+497	Melia	Migliore	\N	6	\N	Christy Migliore	149	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+498	Kelsey	Migliore	\N	2	\N	Christy Migliore	149	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+499	Annette	Mino	\N	4.5	\N	Ana Mino	150	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+500	Nicholas	Mino	\N	2	\N	Ana Mino	150	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+501	Sofia	Droodi	\N	3.5	\N	Parisa Molanazadeh	151	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+502	Ariana	Morgan	\N	5.5	\N	Cara Morgan	152	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+503	Noora	Soroushnejad	2002-09-03	4.5	\N	Ladan Moshtaghi	153	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+504	Nick	Moura	\N	4	\N	Joe & Michelle Moura	154	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+505	Lexie	Moura	\N	8	\N	Joe & Michelle Moura	154	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+506	Meagan	Moura	\N	6	\N	Joe & Michelle Moura	154	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+507	Tommy	Wilkens	\N	2.5	\N	Laura Murphy-Wilkens	155	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+508	Johnny	Wilkens	\N	4.5	\N	Laura Murphy-Wilkens	155	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+509	Carson	Myers	\N	7	\N	Paula Myers	156	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+510	Reese	Myers	\N	5	\N	Paula Myers	156	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+511	Eva	Prakash	\N	6	\N	Sabina Nat	157	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+512	Neal	Prakash	\N	3.5	\N	Sabina Nat	157	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+513	Cole	Nelson	\N	4	\N	Ann-Marie Nelson	158	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+514	Christian	Nelson	\N	6	\N	Ann-Marie Nelson	158	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+515	Jerod	Nelson	\N	72rc	\N	Doreen Nelson	159	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+516	Chi	Nguyen	\N	5	\N	Tho Nguyen	160	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+517	My	Nguyen	\N	6	\N	Tho Nguyen	160	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+518	Samantha	Nichol	\N	6	\N	Kim & Steve Nichol	161	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+519	Lauren	Nichol	\N	4	\N	Kim & Steve Nichol	161	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+520	Amanda	Baker	\N	7	\N	Leda Nielson	162	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+521	Chasen	Nightingale	\N	7	\N	Gai & Jeff Nightingale	163	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+522	Kailey	Nightingale	\N	10	\N	Gai & Jeff Nightingale	163	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+523	Mia	O'Hehir	\N	6	\N	Amy O'Hehir	164	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+524	Anna	O'Hehir	\N	6	\N	Amy O'Hehir	164	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+525	Jack	Olson	\N	2.5	\N	Lupe Olson	165	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+526	Neil	Olson	\N	4	\N	Lupe Olson	165	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+527	Taylor	Omura	\N	4	\N	Jennifer Omura	166	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+528	Brandon	Omura	\N	6	\N	Jennifer Omura	166	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+529	Pearson	Orcutt	\N	3	\N	Melynda Orcutt	167	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+530	Paula	Orrego	\N	13	\N	Margarita Orrego	168	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+531	Connor	Orth	\N	4.5	\N	Beth Orth	169	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+532	Reagan	Orth	\N	6	\N	Beth Orth	169	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+533	Andrea	Osorio	\N	9	\N	Kirsten Osorio	170	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+534	Mark	Osorio	\N	5	\N	Kirsten Osorio	170	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+535	Antoni	Ostrowski	\N	8	\N	Yuko Ostrowski	171	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+536	Anna	Ostrowski	\N	8	\N	Yuko Ostrowski	171	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+537	Nicole	Pagan	\N	4	\N	Steve & Winnie Pagan	172	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+538	Sarah	Pagan	\N	11	\N	Steve & Winnie Pagan	172	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+539	Shelby	Page	\N	5	\N	Jacque Page	173	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+540	Nathan	Paige	\N	12	\N	Lisa Paige	174	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+541	Nina	Pal	\N	6	\N	Alan & Monica Pal	175	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+542	Leo	Palermo	\N	3.5	\N	Karen Palermo	176	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+543	Max	Palicio	\N	3.5	\N	Sandy Palicio	177	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+544	Emily	Palicio	\N	7	\N	Sandy Palicio	177	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+545	Kelsey	Palmaffy	\N	6.5	\N	Amy & Michael Palmaffy	178	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+546	Timmy	Pantiga	\N	8	\N	Tim Pantiga	179	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+547	Trevor	Parcella	\N	7	\N	Tammy Parcella	180	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+548	Dyle	Yoon	\N	7	\N	Miyoung Park	181	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+549	Athena	Parker	\N	7	\N	Jenny Parker	182	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+550	Natasha	Parker	\N	4	\N	Jenny Parker	182	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+551	Gabriella	Pasquinelli	\N	6	\N	Rebecca Pasquinelli	183	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+552	Reece	Pasquinelli	\N	4	\N	Rebecca Pasquinelli	183	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+553	Sonali	Patel	\N	8	\N	Rachana Patel	184	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+554	Kirana	Patel	\N	6	\N	Rachana Patel	184	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+555	Chandler	Paullin	\N	7	\N	Suzanne Paullin	185	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+556	Kyle	Penick	\N	9	\N	Jennifer Penick	186	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+557	Erin	Penick	\N	5	\N	Jennifer Penick	186	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+558	Ashlyn	Penick	\N	7	\N	Jennifer Penick	186	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+559	Antonio	Peretti	\N	3	\N	Kris Peretti	187	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+560	Isabella	Peretti	\N	3	\N	Kris Peretti	187	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+561	Matteo	Peretti	\N	7	\N	Kris Peretti	187	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+562	Annabella	Perrino	\N	5	\N	Catherine Perrino	188	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+563	Cordella	Perrotta	\N	5	\N	Ron Perrotta	189	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+564	Audrey	Pesek	\N	6	\N	Lesley Pesek	190	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+565	Andrew	Pesek	\N	8	\N	Lesley Pesek	190	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+566	Leta	Pham	\N	5	\N	Chuong Pham	191	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+567	London	Pham	\N	7	\N	Chuong Pham	191	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+568	Madison	Pillon	\N	8	\N	Noralie Pillon	192	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+569	Samantha	Pizzo	\N	5.5	\N	Tricia Pizzo	193	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+570	Emma	Preston	\N	6.5	\N	Heidi Preston	194	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+571	Karen	Yu	\N	7	\N	Connie Qiu	195	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+572	Desiree	Rafizadeh	\N	8	\N	Sharareh Rafizadeh	196	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+573	Adrian	Rafizadeh	\N	5	\N	Sharareh Rafizadeh	196	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+574	Drew	Rampelberg	\N	3.5	\N	Courtaney Rampelberg	197	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+575	Valerie	Remaker	\N	8	\N	Theresa Remaker	198	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+576	Matt	Remaker	\N	10	\N	Theresa Remaker	198	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+577	Matt	Rhodes	\N	5	\N	Maya Rhodes	199	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+578	Cameron	Roffey	\N	7	\N	Cheryl Roffey	200	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+579	Paige	Rosckes	\N	4	\N	Renay Rosckes	201	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+580	Lauryn	Rosckes	\N	6	\N	Renay Rosckes	201	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+581	Peyton	Rosenberg	\N	10	\N	Cheryl Rosenberg	202	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+582	Savannah	Rosenberg	\N	7	\N	Cheryl Rosenberg	202	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+583	Cooper	Rosenberg	\N	7	\N	Cheryl Rosenberg	202	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+584	Brent	Rouiller	\N	6	\N	Michael & Shannon Rouiller	203	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+585	Laura	Rouiller	\N	11	\N	Michael & Shannon Rouiller	203	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+586	Ava	Ruth	\N	11 mo.	\N	Shannon Ruth	204	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+587	Grace	Ruth	\N	3	\N	Shannon Ruth	204	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+588	Ridley	Ruth	\N	5	\N	Shannon Ruth	204	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+589	Shiva	Saeh	\N	6	\N	Farah Saeb	205	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+590	Andrew	Salah	\N	4	\N	Janet Salah	206	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+591	Tommy	Santucci	\N	7	\N	Lucia Santucci	207	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+592	Sarah	Santucci	\N	5	\N	Lucia Santucci	207	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+593	Akhil	Sawhney	\N	7.5	\N	Puneet Sawhney	208	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+594	Kobe	Schmitz	\N	7	\N	Rhea Schmitz	209	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+595	Hannah	Schmitz	\N	8	\N	Rhea Schmitz	209	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+596	Benjamin	Schmitz	\N	4.5	\N	Rhea Schmitz	209	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+597	Savannah	Schwertley	\N	9	\N	Lesley Schwertley	210	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+598	Sabrina	Schwertley	\N	9	\N	Lesley Schwertley	210	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+599	Tyler	Seawright	\N	8	\N	Julie Seawright	211	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+600	Kaitlyn	Seawright	\N	6	\N	Julie Seawright	211	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+601	Benjamin	Seratti	\N	4	\N	Natalie Seratti	212	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+602	Zachary	Seratti	\N	5.5	\N	Natalie Seratti	212	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+603	Sierra	Seratti	\N	7	\N	Natalie Seratti	212	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+604	Havi	Shankar	\N	6	\N	Beena Shankar	213	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+605	Erika	Shaw	\N	4	\N	Allison Shaw	214	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+606	Daniel	Shehadel	\N	11	\N	Atour Shehadel	215	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+607	Nathan	Shehadel	\N	3	\N	Atour Shehadel	215	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+608	Ryan	Shenefiel	\N	7	\N	Denise Shenefiel	216	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+609	Tyler	Shenefiel	\N	5	\N	Denise Shenefiel	216	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+610	Sean	Chamberlan	\N	5	\N	Sunita Singh	217	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+611	Jake	Smaha	\N	5.5	\N	Renee Smaha	218	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+612	Mia	Smaha	\N	4	\N	Renee Smaha	218	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+613	Hannah	Smith	\N	3	\N	Katherine Smith	219	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+614	Austin	Smith	\N	5	\N	Katherine Smith	219	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+615	Cassie	Snow	\N	6	\N	Kelly & Patty Snow	220	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+616	Mika	Snydor-Ando	\N	6.5	\N	Susan Snydor-Ando	221	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+617	Jordan	Snydor-Ando	\N	6.5	\N	Susan Snydor-Ando	221	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+618	Kiana	Sobouti	\N	6	\N	Susana Sobouti	222	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+619	Kaelan	Sobouti	\N	10	\N	Susana Sobouti	222	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+620	McKayla	Sorensen	\N	7	\N	Sheri Sorensen	223	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+621	Sofia	Spiga	\N	3	\N	Sandy Spiga	224	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+622	Adrian	Spiga	\N	6	\N	Sandy Spiga	224	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+623	Faith	Springborn	\N	6	\N	Mary Alice Springborn	225	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+624	Zoe	Stamos	\N	8	\N	Katy Stamos	226	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+625	Sara	Stamos	\N	4	\N	Katy Stamos	226	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+626	Brigitte	Starr	\N	5.5	\N	Tina Starr	227	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+627	Carina	Starr	\N	4	\N	Tina Starr	227	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+628	Nathaniel	Stearns	\N	9	\N	Frederica Stearns	228	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+629	Samuel	Stearns	\N	14 mon.	\N	Frederica Stearns	228	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+630	Jakes	Steinkamp	\N	7	\N	Kelly Steinkamp	229	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+631	Lindsey	Steinkamp	\N	5	\N	Kelly Steinkamp	229	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+632	Vishal	Swaminathan	\N	8	\N	Raji Swaminathan	230	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+633	Lily	Swenson	\N	6	\N	Katie Swenson	231	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+634	Garrett	Swenson	\N	4	\N	Katie Swenson	231	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+635	Megan	Tallman	\N	7	\N	Christa Tallman	232	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+636	Ryan	Tallman	\N	5.5	\N	Christa Tallman	232	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+637	Kaylan	Tate	\N	5.5	\N	Elizabeth Tate	233	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+638	Katie	Tatsukawa	\N	8	\N	Lorraine Tatsukawa	234	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+639	Emily	Tatsukawa	\N	5	\N	Lorraine Tatsukawa	234	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+640	Laura	Taylor	\N	11	\N	Lucy Taylor	235	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+641	Eric	Taylor	\N	7	\N	Lucy Taylor	235	0	\N	1	1	1	\N	\N	\N	\N	\N	\N
+642	Taylor	Togami	\N	6.5	\N	Cheryl Togami	236	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+643	Anjolie	Townze	\N	5	\N	Muriel Townze	237	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+644	Dylan	Unangst	\N	4	\N	Terri Unangst	238	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+645	Matthew	Unangst	\N	6	\N	Terri Unangst	238	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+646	Aiden	Valasquez	\N	4.5	\N	Kelly Valasquez	239	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+647	Joe	Valine	\N	4	\N	Terry & Lisa Valine	240	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+648	Isabella	Valine	\N	4.5	\N	Amy Valine	241	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+649	Annika	Vehling	\N	5	\N	Kristen Vehling	242	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+650	Elizabeth	Vehling	\N	8	\N	Kristen Vehling	242	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+651	Timmy	Wada	\N	5	\N	Sharon Wada	243	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+652	Leila	Walker	\N	4	\N	Laurie Walker	244	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+653	Taylor	Walczkowski	\N	6	\N	Colleen & Eric Walczkowski	245	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+654	Devon	Walczkowski	\N	4	\N	Colleen & Eric Walczkowski	245	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+655	Hannah	Wang	\N	6	\N	Linda Wang	247	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+656	Anthony	Memon	\N	7	\N	Ellen Wang	246	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+657	Aaron	Memon	\N	10	\N	Ellen Wang	246	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+658	Matthew	Wang	\N	4	\N	Linda Wang	247	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+659	Taylor	Watanabe	\N	9	\N	Mark & Karin Watanabe	248	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+660	Brett	Watanabe	\N	11	\N	Mark & Karin Watanabe	248	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+661	Ethan	Watson	\N	3	\N	Bridget Watson	249	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+662	Aleksei	Watson	\N	6	\N	Bridget Watson	249	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+663	Tyler	Wick	\N	5	\N	Heather Wick	250	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+664	Christian	Wiebe	\N	6	\N	Scott & Christina Wiebe	251	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+665	Owen	Wiebe	\N	5	\N	Scott & Christina Wiebe	251	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+666	Jake	Wiebe	\N	4	\N	Scott & Christina Wiebe	251	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+667	Christopher	Williams	\N	3	\N	Katie Williams	252	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+668	Sarah	Williams	\N	6	\N	Katie Williams	252	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+669	Faith	Woll	\N	4	\N	Rob & Kristen Woll	253	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+670	Jeremy	Lee	\N	11	\N	May Wone	254	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+671	Nicholas	Wong	\N	6	\N	Lillian Wong	258	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+672	Samantha	Wong	\N	9	\N	Lillian Wong	258	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+673	Tyler	Wong	\N	12	\N	Melinda Wong	255	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+674	Nathan	Wong	\N	6	\N	Gregory Wong	257	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+675	Melissa	Wong	\N	9	\N	Melinda Wong	255	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+676	Jessica	Wong	\N	13	\N	Vendy Wong	256	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+677	Rebecca	Wong	\N	10	\N	Vendy Wong	256	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+678	Blake	Woodworth	\N	10	\N	Krystal Woodworth	259	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+679	Alyssa	Woolridge	\N	3.5	\N	Michelle Woolridge	260	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+680	Matthew	Wright	\N	9	\N	Mark & Grace Wright	261	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+681	Ashlyn	Wright	\N	7	\N	Mark & Grace Wright	261	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+682	Hunter	Liu	\N	5	\N	Yuyen Yang	262	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+683	Mary	Zhang	\N	9	\N	Wei Zhang	263	0	\N	1	\N	\N	\N	\N	\N	\N	\N	\N
+684	Alice	Chen	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	alicemaychen@yahoo.com	\N	Cassidy Lu, Caton Lu	\N	\N
+685	Caton	Chen	\N	\N	\N	Alice Chen	684	0	\N	0	\N	\N	\N	\N	\N	\N	\N	\N
+686	Cassidy	Chen	\N	\N	\N	Alice Chen	684	0	\N	0	\N	\N	\N	\N	\N	\N	\N	\N
+687	Renee	Allen	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	\N	\N	Jackson	\N	\N
+688	Jackson	Allen	\N	\N	\N	Renee Allen	687	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+689	Hunter	Anderson	\N	\N	\N	Carla Anderson	6	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+690	Katie	Brown	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	brownkat@pacbell.net	\N	Nathan Lipman	\N	\N
+691	Jen	Constantino	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	jwatten@hotmail.com	\N	Gia,Kaden	\N	\N
+692	Suzanne	Baker	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	Q_Baker@sbcglobal.net	\N	Amanda	\N	\N
+693	Cheryl	Dermer	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	\N	\N	Jenna, Jacob, Jeremy Sullivan	\N	\N
+694	Erin	Azzolina	\N	\N	\N	\N	\N	1	\N	0	\N	\N	\N	fifijuanita@aol.com	\N	Brooke	\N	\N
+695	Brooke	Azzolina	\N	\N	\N	\N	694	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+696	Logan	Azzolina	\N	\N	\N	\N	694	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+697	Natalie	Ellis	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	saintmary32@aol.com	1	Jaden Ellis - 12/2/1999	\N	\N
+698	Beheshteh	Emrani	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	bevaghar@yahoo.com	1	Kayvon Vaghar - 2/28/2006\r\nNikta Vaghar	\N	\N
+699	Monica	Ganjoo	\N	\N	\N		\N	1	\N	0	1	1	\N	\N	\N	\N	\N	\N
+700	Margo & Steve	Gann	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	margogann@yahoo.com	\N	Seamus	\N	\N
+701	Monica	Johnson	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	mmjohnson@pacbell.net	\N	Ryan	\N	\N
+702	Shawn	Jacob	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	shawnjacob@sbcglobal.net	\N	Ilias	\N	\N
+704	Shu-Yi	Kuo	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	\N	\N	Henderson Hsu, Howard Hsu	\N	\N
+705	Divya	Kapadia	\N	\N	\N		\N	1	\N	0	1	1	\N	\N	\N	\N	\N	\N
+706	Ernie & Maren	Lopez	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	\N	\N	Joseph,Amy	\N	\N
+707	Anindita	Mukherjee	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	anindita.mukherjee@yahoo.com	\N	\N	\N	\N
+709	Steve	Broccoli	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	ltnakashima@yahoo.com	\N	Laura Nakashima - Additional Guardian; Evan Broccoli 2/15/2004; Benjamin Broccoli 10/12/2006	\N	\N
+710	Steve & Shawn	Neverve	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	\N	\N	Ben	\N	\N
+711	Lee & Stacey	Petty	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	\N	\N	Ruby	\N	\N
+712	Elsa	Price	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	elsakris@pacbell.net	\N	Nick, Isabel	\N	\N
+713	Emily	Quinlivan	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	emilyaq@sbcglobal.net	\N	Maya Walter	\N	\N
+714	Shital	Shah	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	sashah73@yahoo.com	\N	Kushal,Keval	\N	\N
+715	Anjali	Sinha	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	anjalisinhasj@gmail.com	\N	Ishan	\N	\N
+716	Monika	Susko	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	monika711@sbcglobal.net	\N	Raquel	\N	\N
+717	Carol	Szilasie	\N	\N	\N		\N	1	\N	0	1	1	\N	\N	\N	\N	\N	\N
+718	Nadereh	Varamini	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	\N	\N	Ariana Golshani	\N	\N
+719	Lori & Tim	Zemaitis	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	timandlori@sbcglobal.net	\N	Cal	\N	\N
+720	Sima	Zomorrock	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	zomorrock@sbcglobal.net,momonsima@yahoo.com	\N	Cyrus - 8/18/00\r\nAurya - 12/27/02	\N	\N
+721	Jennifer	Analla	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	jenanalla@yahoo.com	\N	\N	\N	\N
+722	Yakov	Fish	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	\N	\N	Maya Buinov Additional Guardian\r\nAnna Fish, Julia Fish	\N	\N
+723	Erin	Carrasquilla	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	eklarkin2001@yahoo.com	\N	Nathan	\N	\N
+724	Sandra	Dry	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	drysandra@hotmail.com	\N	Jonathan, Daniel	\N	\N
+725	Mark	Chiavetta	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	markchiavetta@apr.com	\N	Abigail	\N	\N
+726	Jon	Jasper	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	jasperfamilies@yahoo.com	\N	Aiden, Michael - addl guardian: Carolyn Cheng	\N	\N
+727	Debbie	Hao	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	debhao@pacbell.net	\N	Jason,Melanie	\N	\N
+728	Chuck & Julie	Hayden	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	juliehayden@comcast.net	\N	Rylee	\N	\N
+729	Anurag	Kakoria	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	kkanurag@yahoo.com	\N	Reva, Kundan	\N	\N
+730	Rhonda	Kutche	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	rjkutche@comcast.net	\N	Trevor	\N	\N
+732	Ed & Jenny	Teixeira	\N	\N	\N	\N	\N	1	\N	0	1	1	\N	zakksmom@sbcglobal.net	\N	Ruby,Logan	\N	\N
+733	Benjamin	Analla	\N	\N	\N	Jennifer Analla	721	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+734	Jillian	Analla	\N	\N	\N	Jennifer Analla	721	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+736	Kaylan	Belick	\N	\N	\N	Kathy Belick	66	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+737	Nathan	Lipman	\N	\N	\N	Katie Brown	690	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+738	Anna	Fish	\N	\N	\N	Yakou & Maya (Buinov) Fish	722	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+739	Julia	Fish	\N	\N	\N	Yakou & Maya (Buinov) Fish	722	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+740	Alex	Carrasquilla	\N	\N	\N	Erin Carrasquilla	723	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+741	Nathan	Carrasquilla	\N	\N	\N	Erin Carrasquilla	723	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+742	Abigail	Chiavetta	\N	\N	\N	Mark Chiavetta	725	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+743	Justin	Bae	\N	\N	\N	KC Choe	27	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+744	Gia	Constantino	\N	\N	\N	Jen Constantino	691	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+745	Kaden	Constantino	\N	\N	\N	Jen Constantino	691	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+746	Jonathan	Dry	\N	\N	\N	Sandra Dry	724	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+747	Daniel	Dry	\N	\N	\N	Sandra Dry	724	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+748	Jenna	Dermer	\N	\N	\N	Cheryl Dermer	693	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+757	Joseph	Lopez	\N	\N	\N	Ernie & Maren Lopez	706	0	\N	\N	1	1	0	\N	\N	\N	\N	\N
+758	Evan	Broccoli	\N	\N	\N	Steve & Laura (Nakashima) Broccoli	709	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+760	Cheryl	Raffey	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	1	\N	\N	Cameron	\N	\N
+763	Seamus	Gann	\N	\N	\N	Margo & Steve Gann	700	0	\N	\N	1	1	1	\N	\N	\N	\N	\N
+771	Susan	Oneal	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	soneal@valleywater.org	\N	Lauren	\N	\N
+772	Benjamin	Broccoli	\N	\N	\N	Steve & Laura (Nakashima) Broccoli	709	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+775	Maya	Walter	\N	\N	\N	Emily Quinlivon	713	0	\N	\N	1	1	0	\N	\N	\N	\N	\N
+782	Cyrus	Zomorrock	\N	\N	\N	Sima Zomorrock	720	0	\N	\N	1	1	0	\N	\N	\N	\N	\N
+791	Cal	Zemaitis	\N	\N	\N	Lori & Tim Zemaitis	719	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+795	Hitesh	Kapadia	\N	\N	\N	Divya Kapadia	705	\N	\N	\N	1	1	1	\N	\N	\N	\N	\N
+796		9	\N	\N	\N	Trigger Failed	\N	0	\N	\N	\N	\N	1	mpacelli2001@yahoo.com	\N		2013-02-15 15:18:46	\N
+797	Joanie	Thomas	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	1	\N	\N	\N	\N	\N
+798	Lynda	Wootan	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	1	\N	\N	\N	\N	\N
+800	Aiden	Jasper	\N	\N	\N	Jon & Carolyn (Cheng) Jasper	726	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+801	Michael	Jasper	\N	\N	\N	Jon & Carolyn (Cheng) Jasper	726	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+803	Jaden	Ellis	1999-12-02	\N	\N	Natalie Ellis	697	\N	\N	\N	1	1	\N	\N	1	\N	\N	\N
+804	Nikta	Vaghar	\N	\N	\N	Beheshteh Emrani	698	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+805	Kayvon	Vaghar	2006-02-28	\N	\N	Beheshteh Emrani	698	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+806	Gabriel	Akbari	\N	\N	\N	Monica Ganjoo	699	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+807	Jason	Hao	\N	\N	\N	Debbie Hao	727	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+808	Melanie	Hao	\N	\N	\N	Debbie Hao	727	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+809	Rylee	Hayden	\N	\N	\N	Chuck & Julie Hayden	728	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+810	Ryan	Johnson	\N	\N	\N	Monica Johnson	701	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+811	Ilias	Jacob	\N	\N	\N	Shawn Jacob	702	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+812	Reva	Kakoria	\N	\N	\N	Anurag Kakoria	729	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+813	Kundan	Kakoria	\N	\N	\N	Anurag Kakoria	729	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+814	Trevor	Kutche	\N	\N	\N	Rhonda Kutche	730	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+815	Amy	Lopez	\N	\N	\N	Ernie & Maren Lopez	706	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+816	Ben	Neverve	\N	\N	\N	Steve & Shawn Neverve	710	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+817	Ruby	Petty	\N	\N	\N	Lee & Stacey Petty	711	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+818	Nick	Price	\N	\N	\N	Elsa Price	712	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+819	Isabel	Price	\N	\N	\N	Elsa Price	712	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+820	Ishan	Sinha	\N	\N	\N	Anjali Sinha	715	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+821	Raquel	Susko	\N	\N	\N	Monika Susko	716	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+822	Ariana	Golshani	\N	\N	\N	Nadereh Varamini	718	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+823	Ruby	Teixeira	\N	\N	\N	Ed & Jenny Teixeira	732	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+824	Logan	Teixeira	\N	\N	\N	Ed & Jenny Teixeira	732	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+825	Aurya	Zomorrock	\N	\N	\N	Sima Zomorrock	720	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+826	Haleema	Akram	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	haleemaiqbal@hotmail.com	1	Sofia 8/30/04\r\nZaara 3/5/07	2013-02-15 13:03:16	\N
+827	Sofia	Akram	2004-08-30	\N	\N	Haleema Akram	826	0	\N	\N	1	1	\N	\N	\N	\N	2013-02-17 15:18:59	\N
+828	Afsaneh	Bahrami	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	afsi.bahrami@comcast.net	\N	Bob Tabrizi 8/18/97	2013-02-15 13:15:02	\N
+829	Bob	Tabrizi	1997-08-18	\N	\N	Afsi Bahrami	828	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+830	Monica	Balajadia	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	balajadia.family@sbcglobal.net	\N	Gabriela - 11/18/02\r\nSofia - 5/5/04	\N	\N
+831	Gabriela	Balajadia	2002-11-18	\N	\N	Monica Balajadia	830	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+832	Sofia	Balajadia	2004-05-05	\N	\N	Monica Balajadia	830	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+833	Maia	Bernasconi	\N	\N	\N	Brian & Christina Bernasconi	17	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+835	Chester	Chien	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	chester.chien@gmail.com	\N	Robert	\N	\N
+836	Robert	Chien	\N	\N	\N	Chester Chien	835	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+837	Jennifer	Coelho	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	jencoelho@sbcglobal.net	\N	Jared	\N	\N
+838	Jared	Coelho	\N	\N	\N	Jennifer Coelho	837	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+839	Michael	Grimm	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	chalared@gmail.com	\N	Joanne Coleman, children = Alex Grimm, Charlie Grimm	\N	\N
+840	Alex	Grimm	\N	\N	\N	Michael & Joanne (Coleman Grimm	839	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+841	Charlie	Grimm	\N	\N	\N	Michael & Joanne (Coleman Grimm	839	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+842	Carol	Hofheimer	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	prettypopcorn@aol.com	\N	Lily,Sarah	2013-02-25 15:03:19	Update email info
+843	Lily	Hofheimer	\N	\N	\N	Carol Hofheimer	842	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+844	Sarah	Hofheimer	\N	\N	\N	Carol Hofheimer	842	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+845	Michelle	Iversen	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	shelliversen@sbcglobal.net	\N	Shane	\N	\N
+846	Shane	Iversen	\N	\N	\N	Michelle Iversen	845	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+847	Wendy	Kong	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	woo_kong@sbcglobal.net	\N	Nathan,Lauren	\N	\N
+848	Nathan	Kong	\N	\N	\N	Wendy Kong	847	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+849	Lauren	Kong	\N	\N	\N	Wendy Kong	847	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+850	Jenny	Hansen	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	jlfhansen@sbcglobal.net	\N	William	\N	\N
+851	William	Hansen	\N	\N	\N	Jenny Hansen	850	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+852	Neda	Hawkins	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	neda.hawkins@gmail.com\r\nsteverhawkins@gmail.com	\N	Brad, Nate	\N	\N
+853	Brad	Hawkins	\N	\N	\N	Neda Hawkins	852	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+854	Nate	Hawkins	\N	\N	\N	Neda Hawkins	852	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+855	Hyunna	Jang	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	crayonshingchang@hotmail.com	\N	Andrew	\N	\N
+856	Joyce	Jang	\N	\N	\N	Hyunna Jang	855	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+857	Stephanie	Long	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	slong@intacct.com,stephsayer@aol.com	\N	Ethan - 11/7/05\r\nElizabeth - 8/23/07	2013-02-15 14:01:42	\N
+858	Ethan	Long	2005-11-07	\N	\N	Stephanie Long	857	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+859	Elizabeth	Long	2007-08-23	\N	\N	Stephanie Long	857	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+860	Louisa	Mendoza	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	bodger2006@comcast.net	\N	Mazon	\N	\N
+862	Mazon	Mendoza	\N	\N	\N	Louisa Mendoza	860	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+863	Amir	Milani	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	amirmi2003@yahoo.com	\N	John, Pearl	\N	\N
+864	John	Milani	\N	\N	\N	Amir Milani	863	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+865	Pearl	Milani	\N	\N	\N	Amir Milani	863	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+866	Parto	Mirzamaani	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	mirzamaani@yahoo.com	\N	Arian	2013-02-15 14:17:25	\N
+867	Arian	Mirzamaani	\N	\N	\N	Parto Mirzamaani	866	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+868	Laura	Murray	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	lemurray@mac.com	\N	Page	\N	\N
+869	Page	Murray	\N	\N	\N	Laura Murray	868	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+870	Thuy Anh	Nguyen	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	ta.nguyen0004@gmail.com	\N	Nathan	\N	\N
+871	Nathan	Nguyen	\N	\N	\N	Thuy Anh Nguyen	870	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+872	Lauren	Oneal	\N	\N	\N	Susan Oneal	771	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+873	Christopher	Penick	\N	\N	\N	Jennifer Penick	186	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+874	Kathleen	Peterson	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	teampeterson@hunter.org	\N	Clarissa,Julia,Will	\N	\N
+875	Clarissa	Peterson	\N	\N	\N	Kathleen Peterson	874	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+876	Julia	Peterson	\N	\N	\N	Kathleen Peterson	874	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+877	Will	Peterson	\N	\N	\N	Kathleen Peterson	874	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+878	Angelique	Ramsey	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	angelique_1234@yahoo.com	\N	Gavin	\N	\N
+879	Gavin	Ramsey	\N	\N	\N	Angelique Ramsey	878	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+880	Allison	Riche	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	allisonriche@yahoo.com	\N	Summer	\N	\N
+881	Summer	Riche	\N	\N	\N	Allison Riche	880	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+882	Madhri	Shah	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	madhri408@yahoo.com	\N	Niraj, Anjani	\N	\N
+883	Niraj	Shah	\N	\N	\N	Madhri Shah	882	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+884	Anjani	Shah	\N	\N	\N	Madhri Shah	882	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+885	Kushal	Shah	\N	\N	\N	Shital Shah	714	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+886	Keval	Shah	\N	\N	\N	Shital Shah	714	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+887	Catherine	Tallman	\N	\N	\N	Christa Tallman	232	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+888	Dan & Debra	Tilney	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	dtilney@fusionstorm.com	\N	Devin	\N	\N
+889	Devin	Tilney	\N	\N	\N	Dan & Debra Tilney	888	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+890	Cynthia	Werry	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	cynthia.werry@yahoo.com	\N	Alex - 7/3/04	2013-02-15 14:56:56	\N
+891	Alex	Werry	2004-07-03	\N	\N	Cynthia Werry	890	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+892	Jules	Chagnon	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	julesgregory@comcast.net	\N	Sara 10/19/06, Greggie 11/21/07, Charlie 6/1/09	\N	\N
+893	Greggie	Chagnon	2007-11-21	\N	\N	Jules Chagnon	892	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+894	Sara	Chagnon	2006-10-19	\N	\N	Jules Chagnon	892	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+895	Charlie	Chagnon	2009-06-01	\N	\N	Jules Chagnon	892	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+896	Jen	Chiavetta	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	jennifer.chiavetta@gmail.com\r\n\r\n\r\n	\N	Caianluca	\N	\N
+897	Gianluca	Chiavetta	\N	\N	\N	Jen Chiavetta	896	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+898	Marcy	Kochler	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	marcy202123f@yahoo.com	\N	\N	\N	\N
+899	Ryan	Kochler	\N	\N	\N	Marcy Kochler	898	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+900	Dan & Marisa	Amezquita	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	mpacelli2001@yahoo.com	\N	Sophia 1/12/00	2013-02-15 13:03:56	\N
+901	Sophia	Amezquita	2009-01-12	3	\N	Trigger Failed	\N	0	\N	\N	\N	\N	\N	\N	\N	\N	2013-02-17 15:19:04	\N
+902	Zaara	Akram	2007-03-05	\N	\N	Haleema Akram	826	0	\N	\N	1	1	\N	\N	\N	\N	2013-02-17 15:18:58	\N
+903	Ben & Maria	Angilieri	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	mangileri@gmail.com	1	Nico 6/26/02, Sofia 10/11/07	\N	\N
+904	Nico	Angileri	2002-06-26	\N	\N	Ben & Maria Angilieri	903	\N	\N	\N	1	1	\N	\N	1	\N	\N	\N
+905	Sofia	Angileri	2007-10-11	\N	\N	Ben & Maria Angilieri	903	\N	\N	\N	1	1	\N	\N	1	\N	\N	\N
+906	Vasudha	Paul	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	vasudha.paul@gmail.com	1	Meghna - 2/18/05	2013-02-15 14:33:48	\N
+907	Meghna	Paul	2005-02-18	\N	\N	Vasudha Paul	906	\N	\N	\N	1	1	\N	\N	1	\N	\N	\N
+908	Felicia	Cheng	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	fcheng@intersil.com	\N	Noah Cheng - 10/18/2004	\N	\N
+909	Noah	Cheng	2004-10-18	\N	\N	Felicia Cheng	908	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+910	Francis & Tony	Coleman	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	francis.coleman@gmail.com	1	Ryan 4/18/03, Alexis 3/5/05	\N	\N
+911	Ryan	Coleman	2003-04-18	\N	\N	Francis & Tony Coleman	910	\N	\N	\N	1	1	\N	\N	1	\N	\N	\N
+912	Alexis	Coleman	2005-03-05	\N	\N	Francis & Tony Coleman	910	\N	\N	\N	1	1	\N	\N	1	\N	\N	\N
+913	Janette	Canare	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	jcanare@gmail.com	1	Larissa Budzinski - 10/30/2004	\N	\N
+914	Larissa	Budzinski	2004-10-30	\N	\N	Janette Canare	913	\N	\N	\N	1	1	\N	\N	1	\N	\N	\N
+915	Chris	Connolly	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	wcconnolly@gmail.com	1	Aralyn 10/6/06	\N	\N
+916	Aralyn	Connolly	2006-10-06	\N	\N	Chris Connolly	915	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+917	Ella	Gordon	2006-03-15	\N	\N	Nicolette & Keith Gordon	81	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+918	Sofia	Daroodi	2003-12-25	\N	\N	Parisa Molanazadeh	151	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+919	Annie	Leonhardt	-infinity	\N	\N	\N	\N	1	\N	\N	1	1	\N	annieleonhardt08@gmail.com	\N	Brody - 7/31/09	2013-02-15 13:24:08	\N
+920	Brody	Leonhardt	2009-07-31	\N	\N	Annie Leonhardt	919	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+921	Cory	Laurence	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	coryandrob@gmail.com	\N	Sabine - 10/6/03\r\nAnneke - 6/24/06\r\nAudrey - 3/15/09	2013-02-15 13:23:12	\N
+922	Sabine	Laurence	2003-10-06	\N	\N	Cory Laurence	921	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+923	Anneke	Laurence	2006-06-24	\N	\N	Cory Laurence	921	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+924	Audrey	Laurence	2009-03-15	\N	\N	Cory Laurence	921	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+925	Yoonju	Kim	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	yoonju98@gmail.com	\N	Julia Jeong - 2/7/05	2013-02-15 13:20:29	\N
+926	Julia	Jeong	2005-02-07	\N	\N	Yoonju Kim	925	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+927	Jo	Lay	1951-12-17	\N	\N	\N	\N	1	1	\N	1	1	\N	jolay@us.ibm.com	\N	\N	2013-02-15 13:24:26	\N
+928	Oanh	Nguyen	1981-02-08	\N	\N	\N	\N	1	1	\N	1	1	\N	oanhjudynguyen@yahoo.com	\N	\N	2013-02-15 14:28:47	\N
+929	Cheryl	Parrish	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	\N	\N	Paisley - 6/1/2005	2013-02-15 14:32:56	\N
+930	Paisley	Parrish	\N	\N	\N	Cheryl Parrish	929	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+931	Angel	Reyda	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	spiderpeck@yahoo.com	\N	\N	\N	\N
+932	Somdev	Sen	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	somdevs@yahoo.com	\N	Nirvik - 8/6/99	2013-02-15 14:48:38	\N
+933	Nirvik	Sen	1999-08-06	\N	\N	Somdev Sen	932	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+934	Diana	Southern	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	diana_avila1@hotmail.com	\N	Alexia - 11/24/04	2013-02-15 14:52:15	\N
+935	Alexia	Southern	2004-11-24	\N	\N	Diana Southern	934	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+936	Ariadne	Tcharos	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	ngtcharos@aol.com	\N	Alex - 11/6/07\r\nTheo - 12/8/04	2013-02-15 14:53:13	\N
+937	Alex	Tchros	2007-11-06	\N	\N	Ariadne Tcharos	936	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+938	Theo	Tcharos	2004-12-08	\N	\N	Ariadne Tcharos	936	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+939	Janet	Van Horn	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	jttan23@hotmail.com	\N	Aaron - 1/28/04\r\nBrandon - 9/21/05	2013-02-15 14:55:23	\N
+940	Aaron	Van Horn	2004-01-28	\N	\N	Janet Van Horn	939	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+941	Brandon	Van Horn	2005-09-21	\N	\N	Janet Van Horn	939	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+942	Sam & Anita	Acchione	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	acchione@sbcglobal.net	\N	\N	\N	\N
+943	Gianna	Acchione	2004-07-26	\N	\N	Sam & Anita Acchione	942	0	1	\N	1	1	\N	\N	\N	\N	2013-02-15 15:20:09	student column changed from null to 1
+944	Nicholas	Acchione	2005-08-22	\N	\N	Sam & Anita Acchione	942	0	1	\N	1	1	\N	\N	\N	\N	2013-02-15 15:20:05	student column changed from null to 1
+945	Michelle	Bertacini	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	brianbertacini@comcast.net	\N	Sara - 6/9/2004	\N	\N
+946	Christine	Bertacini	1998-04-17	\N	\N	Michelle Bertacini	945	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+947	Sara	Bertacini	2004-06-09	\N	\N	Michelle Bertacini	945	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+948	Chad & Sara	Ebert	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	saramb_2000@yahoo.com	\N	Grace	\N	\N
+949	Grace	Ebert	2010-02-11	\N	\N	Chad & Sara Ebert	948	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+950	Kerri	Garcia	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	kerrianngrc@aol.com	\N	Morgan 3/1/05	2013-02-25 15:03:19	Update email info
+951	Morgan	Garcia	2005-03-01	\N	\N	Kerri Garcia	950	0	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+952	Hou Sun	Kim	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	Khs7072@hotmail.com	\N	Aaron Park	\N	\N
+953	Aaron	Park	2004-11-25	\N	\N	Hou Sun Kim	952	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+954	Maria	Morales	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	brooklynmia@sbcglobal.net	\N	Brooklyn	\N	\N
+955	Brooklyn	Morales	\N	\N	\N	Maria Morales	954	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+956	Paula	Ould	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	paulaould@yahoo.com	\N	Kyle 5/24/06,Cody 1/8/07	\N	\N
+957	Kyle	Ould	2006-05-24	\N	\N	Paula Ould	956	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+958	Cody	Ould	2007-01-08	\N	\N	Paula Ould	956	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+959	Kshama	Haladi	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	shiralik@gmail.com	\N	Sachi Shirali - 3/18/1999, Saurav Shirali - 10/14/2002	\N	\N
+960	Sachi	Shirali	1999-03-18	\N	\N	Kshama Haladi	959	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+961	Saurav	Shirali	2002-10-14	\N	\N	Kshama Haladi	959	\N	\N	\N	1	1	\N	\N	\N	\N	\N	\N
+962	Sepi	Reihr	\N	\N	\N	\N	\N	1	\N	\N	1	1	\N	\N	1	\N	\N	\N
+963	Sohrob	Reihr	2003-09-05	\N	\N	\N	\N	127	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+964	Sara	Black	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	\N	\N	Grandmother of David, Carissa	\N	\N
+965	Maya	Buinov	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	mbuinov@yahoo.com	\N	Anna Fish, Julia Fish	\N	\N
+966	Jane	Park	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	janepark5@yahoo.com	\N		2013-02-15 15:16:25	\N
+967	Mary	Faris	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	\N	\N	Logan, Briana	\N	\N
+968	Shelly	Maynard	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	sfiorentino@msn.com	\N	Vanessa 2/23/07,Dylan 9/18/09	\N	\N
+969	Anke	Michels	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	anke@sbcglobal.net	\N	Elisa	\N	\N
+970	Laura	Nakashima	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	ltnakashima@yahoo.com	\N	Evan Broccoli, Benjamin Broccoli	\N	\N
+971	Michelle	Otero	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	mishellU@aol.com	\N	Antonio 9/21/06	\N	\N
+972	Michele	Seaton	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	michele.seaton@gmail.com	\N	Harrison, Aislin	\N	\N
+973	Preeturder	Sohi	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	bablisohi@sbcglobal.net	\N	Prabh, Diu	\N	\N
+974	Lisa	Stagi	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	llsu@wedclix.com	\N	Faith,Isaiah	\N	\N
+975	Noreen	Styliadis	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	nstyliadis@yahoo.com	\N	Alexandra 6/4/02	\N	\N
+976	Jen	Stuart	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	\N	\N	Madeline 3/11/08	\N	\N
+977	Satish	Talasu	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	\N	\N	Naina	\N	\N
+978	John	Uht	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	\N	\N	Francesca 6/23/01	\N	\N
+979	Allison	Valdez	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	a_kelley28@yahoo.com	\N	Noah 9/15/07	\N	\N
+980	Jennifer	Wickland	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	jwickland@comcast.net	\N	Matthew Joslyn - 8/16/04\r\nJamie Joslyn - 6/10/06	\N	\N
+981	Rona	Ashby	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	ronapini@yahoo.com	\N	Cameron 8/29/05\r\nMason 2/22/07	\N	\N
+982	Kelly	Baumann	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	kelly.baumann@yahoo.com	\N	Sam Piro 9/12/06	\N	\N
+983	Jennifer	Castro	1986-02-04	\N	\N	\N	\N	1	1	\N	\N	\N	\N	jenn.castro@me.com	\N	adult is student	\N	\N
+984	Matt and Megan	Cesario	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	megan_cesario@pacbell.net	\N	Brianna 8/20/08\r\nKaia 1/1/10	\N	\N
+985	Shanan	Resop	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	resop@att.net	\N		2013-02-15 15:18:44	\N
+986	Kristy	Duffin	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	kristyduffin@yahoo.com	\N	Joshua 12/29/06	\N	\N
+987	Amy	Francis	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	afrany@yahoo.com	\N	Avery 12/23/05	\N	\N
+988	Caroline	Glennon	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	caglennon@gmail.com	\N	Alex 9/27/02	\N	\N
+989	Sara	Hinds	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	fryesara@yahoo.com	\N	Zachary,Dylan	\N	\N
+990	Jae	Ko	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	\N	\N	Daniel Yoon	\N	\N
+991	Kristy & Paul	Kohli	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	kukohli@yahoo.com	\N	Ryan 5/24/07, Madison 2/26/09	2013-02-21 14:10:05	\N
+992	Roxanne	Koopman	1965-02-23	\N	\N	\N	\N	1	1	\N	\N	\N	\N	rkoopman@pacbell.net	\N	\N	\N	\N
+993	Trinh	Lee	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+994	Sherry	Liu	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	xiaoya408@yahoo.com	\N	Juliana 7/24/07	\N	\N
+995	Kathy	Vyvijal	\N	\N	\N	\N	\N	1	1	\N	\N	\N	\N	kathykbv@aol.com	\N	Megan	2013-02-13 12:39:43	\N
+996	Paul	Sonkowsky	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	psonkowsky@yahoo.com	\N	related to Amy Woo	2013-02-25 15:03:19	Update email info
+997	Amy	Woo	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	\N	\N	related to Paul Sonkowsky	\N	\N
+998	Amir	Marjan	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	amirm2003@yahoo.com	\N	John	\N	\N
+999	Jane	Robson	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	clrob@aol.com\r\n	\N	\N	\N	\N
+1000	Romina	Yamini	\N	\N	\N	\N	\N	1	\N	\N	\N	\N	\N	romina_y@yahoo.com\r\n	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: instructors; Type: TABLE DATA; Schema: public; Owner: kingram
+--
+
+COPY public.instructors (objid, entry_date, first_name, middle_name, last_name, dob) FROM stdin;
+1	\N	Ettie	c	Kuhlman	\N
+2	\N	Rolando	b	Roberts	\N
+3	\N	Stanley	c	Stracke	\N
+4	\N	Ariane	b	Hansen	\N
+5	\N	Elinor	c	Effertz	\N
+6	\N	Felipa	c	Walker	\N
+7	\N	Nettie	c	Cassin	\N
+8	\N	Beryl	a	Reynolds	\N
+9	\N	Candice	b	Durgan	\N
+10	\N	Watson	c	Lynch	\N
+11	\N	Myah	b	Waters	\N
+12	\N	Johathan	a	Ritchie	\N
+13	\N	Aditya	a	Grimes	\N
+14	\N	Lonzo	a	Gerlach	\N
+15	\N	Jonathan	a	Jacobi	\N
+16	\N	Brenna	a	Beatty	\N
+17	\N	Jules	c	Emmerich	\N
+18	\N	Al	b	Stoltenberg	\N
+19	\N	Leta	a	Reynolds	\N
+20	\N	Adalberto	c	Bernhard	\N
+21	\N	Cyril	a	Oberbrunner	\N
+22	\N	Vance	b	Crist	\N
+\.
+
+
+--
+-- Data for Name: lesson_details; Type: TABLE DATA; Schema: public; Owner: kingram
+--
+
+COPY public.lesson_details (objid, session_id, session_name, session_year, session_location_id, session_location, session_dates, session_type, session_period1_start, session_period1_end, session_period2_start, session_period2_end, teachers, notes) FROM stdin;
+1	7	Session 7	2010	2	Elks Lodge	Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	8	2010-08-02 00:00:00	2010-08-05 00:00:00	2010-08-09 00:00:00	2010-08-12 00:00:00	\N	\N
+2	6	Session 6	2010	1	Almaden	Mon, July 26 2010 to Fri, July 30 2010	5	2010-07-26 00:00:00	2010-07-30 00:00:00	\N	\N	\N	\N
+3	5	Session 5	2010	1	Almaden	Mon, July 19 2010 to Fri, July 23 2010	5	2010-07-19 00:00:00	2010-07-23 00:00:00	\N	\N	\N	\N
+4	4	Session 4	2010	2	Elks Lodge	Period 1: Tue, July 06 2010 to Fri, July 09 2010 -- BREAK -- Period 2: Tue, July 13 2010 to Fri, July 16 2010	8	2010-07-06 00:00:00	2010-07-09 00:00:00	2010-07-13 00:00:00	2010-07-16 00:00:00	\N	\N
+5	3	Session 3	2010	2	Elks Lodge	Mon, June 28 2010 to Thu, July 01 2010	4	2010-06-28 00:00:00	2010-07-01 00:00:00	\N	\N	\N	\N
+6	2	Session 2	2010	1	Almaden	Period 1: Mon, June 14 2010 to Thu, June 17 2010 -- BREAK -- Period 2: Mon, June 21 2010 to Thu, June 24 2010	8	2010-06-14 00:00:00	2010-06-17 00:00:00	2010-06-21 00:00:00	2010-06-24 00:00:00	\N	\N
+7	1	Session 1	2010	1	Almaden	Mon, June 07 2010 to Thu, June 10 2010	4	2010-06-07 00:00:00	2010-06-10 00:00:00	\N	\N	\N	\N
+8	7	Session 7	2010	2	Elks Lodge	Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010	8	2010-08-02 00:00:00	2010-08-05 00:00:00	2010-08-09 00:00:00	2010-08-12 00:00:00	\N	\N
+9	6	Session 6	2010	2	Elks Lodge	Mon, July 26 2010 to Fri, July 30 2010	5	2010-07-26 00:00:00	2010-07-30 00:00:00	\N	\N	\N	\N
+10	5	Session 5	2010	1	Almaden	Mon, July 19 2010 to Fri, July 23 2010	5	2010-07-19 00:00:00	2010-07-23 00:00:00	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: locations; Type: TABLE DATA; Schema: public; Owner: kingram
+--
+
+COPY public.locations (objid, site_name, site_address, site_city, site_zip) FROM stdin;
+1	Almaden		Almaden	
+2	Elks Lodge		Willow Glen	
+\.
+
+
+--
+-- Data for Name: mtm_lesson2client; Type: TABLE DATA; Schema: public; Owner: kingram
+--
+
+COPY public.mtm_lesson2client (objid, client_id, session_id, lesson_id, parent_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: session_schedule; Type: TABLE DATA; Schema: public; Owner: kingram
+--
+
+COPY public.session_schedule (objid, session_name, start_date, end_date, session_type) FROM stdin;
+1	Session 1	2010-06-07	2010-06-11	4
+2	Session 2	2010-06-14	2010-06-25	8
+3	Session 3	2010-06-28	2010-07-01	4
+4	Session 4	2010-07-06	2010-07-15	8
+5	Session 5	2010-07-19	2010-07-23	5
+6	Session 6	2010-07-26	2010-07-30	5
+7	Session 7	2010-08-02	2010-08-12	8
+\.
+
+
+--
+-- Data for Name: time_increments; Type: TABLE DATA; Schema: public; Owner: kingram
+--
+
+COPY public.time_increments (objid, start_time, end_time, description, status) FROM stdin;
+1	09:00:00	09:20:00	20 Minutes	1
+2	09:00:00	09:30:00	30 Minutes	1
+3	09:00:00	09:40:00	40 Minutes	1
+4	09:20:00	09:40:00	20 Minutes	1
+5	09:20:00	09:50:00	30 Minutes	1
+6	09:20:00	10:00:00	40 Minutes	1
+7	09:30:00	09:50:00	20 Minutes	1
+8	09:30:00	10:00:00	30 Minutes	1
+9	09:30:00	10:10:00	40 Minutes	1
+10	09:40:00	10:00:00	20 Minutes	1
+11	09:40:00	10:10:00	30 Minutes	1
+12	09:40:00	10:20:00	40 Minutes	1
+13	09:50:00	10:10:00	20 Minutes	1
+14	09:50:00	10:20:00	30 Minutes	1
+15	09:50:00	10:30:00	40 Minutes	1
+16	10:00:00	10:20:00	20 Minutes	1
+17	10:00:00	10:30:00	30 Minutes	1
+18	10:00:00	10:40:00	40 Minutes	1
+19	10:10:00	10:30:00	20 Minutes	1
+20	10:10:00	10:40:00	30 Minutes	1
+21	10:10:00	10:50:00	40 Minutes	1
+22	10:20:00	10:40:00	20 Minutes	1
+23	10:20:00	10:50:00	30 Minutes	1
+24	10:20:00	11:00:00	40 Minutes	1
+25	10:30:00	10:50:00	20 Minutes	1
+26	10:30:00	11:00:00	30 Minutes	1
+27	10:30:00	11:10:00	40 Minutes	1
+28	10:40:00	11:00:00	20 Minutes	1
+29	10:40:00	11:10:00	30 Minutes	1
+30	10:40:00	11:20:00	40 Minutes	1
+31	10:50:00	11:10:00	20 Minutes	1
+32	10:50:00	11:20:00	30 Minutes	1
+33	10:50:00	11:30:00	40 Minutes	1
+34	11:00:00	11:20:00	20 Minutes	1
+35	11:00:00	11:30:00	30 Minutes	1
+36	11:00:00	11:40:00	40 Minutes	1
+37	11:10:00	11:30:00	20 Minutes	1
+38	11:10:00	11:40:00	30 Minutes	1
+39	11:10:00	11:50:00	40 Minutes	1
+40	11:20:00	11:40:00	20 Minutes	1
+41	11:20:00	11:50:00	30 Minutes	1
+42	11:20:00	12:00:00	40 Minutes	1
+43	11:30:00	11:50:00	20 Minutes	1
+44	11:30:00	12:00:00	30 Minutes	1
+45	11:30:00	12:10:00	40 Minutes	1
+46	11:40:00	12:00:00	20 Minutes	1
+47	11:40:00	12:10:00	30 Minutes	1
+48	11:40:00	12:20:00	40 Minutes	1
+49	11:50:00	12:10:00	20 Minutes	1
+50	11:50:00	12:20:00	30 Minutes	1
+51	11:50:00	12:30:00	40 Minutes	1
+52	12:00:00	12:20:00	20 Minutes	1
+53	12:00:00	12:30:00	30 Minutes	1
+54	12:00:00	12:40:00	40 Minutes	1
+55	12:10:00	12:30:00	20 Minutes	1
+56	12:10:00	12:40:00	30 Minutes	1
+57	12:10:00	12:50:00	40 Minutes	1
+58	12:20:00	12:40:00	20 Minutes	1
+59	12:20:00	12:50:00	30 Minutes	1
+60	12:20:00	13:00:00	40 Minutes	1
+61	12:30:00	12:50:00	20 Minutes	1
+62	12:30:00	13:00:00	30 Minutes	1
+63	12:30:00	13:10:00	40 Minutes	1
+64	12:40:00	13:00:00	20 Minutes	1
+65	12:40:00	13:10:00	30 Minutes	1
+66	12:40:00	13:20:00	40 Minutes	1
+67	12:50:00	13:10:00	20 Minutes	1
+68	12:50:00	13:20:00	30 Minutes	1
+69	12:50:00	13:30:00	40 Minutes	1
+70	13:00:00	13:20:00	20 Minutes	1
+71	13:00:00	13:30:00	30 Minutes	1
+72	13:00:00	13:40:00	40 Minutes	0
+73	13:10:00	13:30:00	20 Minutes	0
+74	13:10:00	13:40:00	30 Minutes	0
+75	13:10:00	13:50:00	40 Minutes	0
+76	13:20:00	13:40:00	20 Minutes	0
+77	13:20:00	13:50:00	30 Minutes	0
+78	13:20:00	14:00:00	40 Minutes	0
+79	13:30:00	13:50:00	20 Minutes	0
+80	13:30:00	14:00:00	30 Minutes	0
+81	13:30:00	14:10:00	40 Minutes	0
+82	13:40:00	14:00:00	20 Minutes	0
+83	13:40:00	14:10:00	30 Minutes	0
+84	13:40:00	14:20:00	40 Minutes	0
+85	13:50:00	14:10:00	20 Minutes	0
+86	13:50:00	14:20:00	30 Minutes	0
+87	13:50:00	14:40:00	40 Minutes	0
+88	14:00:00	14:20:00	20 Minutes	0
+89	14:00:00	14:30:00	30 Minutes	1
+90	14:00:00	14:40:00	40 Minutes	1
+91	14:10:00	14:30:00	20 Minutes	1
+92	14:10:00	14:40:00	30 Minutes	1
+93	14:10:00	14:50:00	40 Minutes	1
+94	14:20:00	14:40:00	20 Minutes	1
+95	14:20:00	14:50:00	30 Minutes	1
+96	14:20:00	15:00:00	40 Minutes	1
+97	14:30:00	14:50:00	20 Minutes	1
+98	14:30:00	15:00:00	30 Minutes	1
+99	14:30:00	15:10:00	40 Minutes	1
+100	14:40:00	15:00:00	20 Minutes	1
+101	14:40:00	15:10:00	30 Minutes	1
+102	14:40:00	15:20:00	40 Minutes	1
+103	14:50:00	15:10:00	20 Minutes	1
+104	14:50:00	15:20:00	30 Minutes	1
+105	14:50:00	15:30:00	40 Minutes	1
+106	15:00:00	15:20:00	20 Minutes	1
+107	15:00:00	15:30:00	30 Minutes	1
+108	15:00:00	15:40:00	40 Minutes	1
+109	15:10:00	15:30:00	20 Minutes	1
+110	15:10:00	15:40:00	30 Minutes	1
+111	15:10:00	15:50:00	40 Minutes	1
+112	15:20:00	15:40:00	20 Minutes	1
+113	15:20:00	15:30:00	30 Minutes	1
+114	15:20:00	16:00:00	40 Minutes	1
+115	15:30:00	16:50:00	20 Minutes	1
+116	15:30:00	16:00:00	30 Minutes	1
+117	15:30:00	16:10:00	40 Minutes	1
+118	15:40:00	16:00:00	20 Minutes	1
+119	15:40:00	16:10:00	30 Minutes	1
+120	15:40:00	16:20:00	40 Minutes	1
+121	15:50:00	16:10:00	20 Minutes	1
+122	15:50:00	16:20:00	30 Minutes	1
+123	15:50:00	16:30:00	40 Minutes	1
+124	16:00:00	16:20:00	20 Minutes	1
+125	16:00:00	16:30:00	30 Minutes	1
+126	16:00:00	16:40:00	40 Minutes	1
+127	16:10:00	16:30:00	20 Minutes	1
+128	16:10:00	16:40:00	30 Minutes	1
+129	16:10:00	16:50:00	40 Minutes	1
+130	16:20:00	16:40:00	20 Minutes	1
+131	16:20:00	16:50:00	30 Minutes	1
+132	16:20:00	17:00:00	40 Minutes	1
+133	16:30:00	16:50:00	20 Minutes	1
+134	16:30:00	17:00:00	30 Minutes	1
+135	16:30:00	17:10:00	40 Minutes	1
+136	16:40:00	17:00:00	20 Minutes	1
+137	16:40:00	17:10:00	30 Minutes	1
+138	16:40:00	17:20:00	40 Minutes	1
+139	16:50:00	17:10:00	20 Minutes	1
+140	16:50:00	17:20:00	30 Minutes	1
+141	16:50:00	17:30:00	40 Minutes	1
+142	17:00:00	17:20:00	20 Minutes	1
+143	17:00:00	17:30:00	30 Minutes	1
+144	17:00:00	17:40:00	40 Minutes	1
+145	17:10:00	17:30:00	20 Minutes	1
+146	17:10:00	17:40:00	30 Minutes	1
+147	17:10:00	17:50:00	40 Minutes	1
+148	17:20:00	17:40:00	20 Minutes	1
+149	17:20:00	17:50:00	30 Minutes	1
+150	17:20:00	18:00:00	40 Minutes	1
+151	17:30:00	17:50:00	20 Minutes	1
+152	17:30:00	18:00:00	30 Minutes	1
+153	17:30:00	18:10:00	40 Minutes	1
+154	17:40:00	18:00:00	20 Minutes	1
+155	17:40:00	18:10:00	30 Minutes	1
+156	17:40:00	18:20:00	40 Minutes	1
+157	17:50:00	18:10:00	20 Minutes	1
+158	17:50:00	18:20:00	30 Minutes	1
+159	17:50:00	18:30:00	40 Minutes	1
+160	18:00:00	18:20:00	20 Minutes	1
+161	18:00:00	18:30:00	30 Minutes	1
+162	18:00:00	18:40:00	40 Minutes	1
+163	18:10:00	18:30:00	20 Minutes	1
+164	18:10:00	18:40:00	30 Minutes	1
+165	18:10:00	18:50:00	40 Minutes	1
+166	18:20:00	18:40:00	20 Minutes	1
+167	18:20:00	18:50:00	30 Minutes	1
+168	18:20:00	19:00:00	40 Minutes	1
+169	18:30:00	18:50:00	20 Minutes	1
+170	18:30:00	19:00:00	30 Minutes	1
+171	18:40:00	19:00:00	20 Minutes	1
+\.
+
+
+--
+-- Data for Name: zdoonotuse_times; Type: TABLE DATA; Schema: public; Owner: kingram
+--
+
+COPY public.zdoonotuse_times (objid, start_time, end_time) FROM stdin;
+1	10:00	10:20
+2	10:00	10:30
+3	10:00	10:40
+4	10:10	10:30
+5	10:10	10:40
+6	10:10	10:50
+7	10:20	10:40
+8	10:20	10:50
+9	10:20	11:00
+10	10:30	10:50
+11	10:30	11:00
+12	10:30	11:10
+13	10:40	11:00
+14	10:40	11:10
+15	10:40	11:20
+16	10:50	11:10
+17	10:50	11:20
+18	10:50	11:30
+19	11:00	11:20
+20	11:00	11:30
+21	11:00	11:40
+22	11:10	11:30
+23	11:10	11:40
+24	11:10	11:50
+25	11:20	11:40
+26	11:20	11:50
+27	11:20	12:00
+28	11:30	11:50
+29	11:30	12:00
+30	11:30	12:10
+31	11:40	12:00
+32	11:40	12:10
+33	11:40	12:20
+34	11:50	12:10
+35	11:50	12:20
+36	11:50	12:30
+37	12:00	12:20
+38	12:00	12:30
+39	12:00	12:40
+40	12:10	12:30
+41	12:10	12:40
+42	12:10	12:50
+43	12:20	12:40
+44	12:20	12:50
+45	12:20	01:00
+46	12:30	12:50
+47	12:30	01:00
+48	12:40	01:00
+49	12:40	01:10
+50	12:40	01:20
+51	12:50	01:10
+52	12:50	01:20
+53	12:50	01:30
+54	01:00	01:20
+55	01:00	01:30
+56	01:00	01:40
+57	01:10	01:30
+58	01:10	01:40
+59	01:10	01:50
+60	01:20	01:40
+61	01:20	01:50
+62	01:20	02:00
+63	01:30	01:50
+64	01:30	02:00
+65	01:30	02:10
+66	01:40	02:00
+67	01:40	02:10
+68	01:40	02:20
+69	01:50	02:10
+70	01:50	02:20
+71	01:50	02:30
+72	02:00	02:20
+73	02:00	02:30
+74	02:00	02:40
+75	02:10	02:30
+76	02:10	02:40
+77	02:10	02:50
+78	02:20	02:40
+79	02:20	02:50
+80	02:20	03:00
+81	02:30	02:50
+82	02:30	03:00
+83	02:30	03:10
+84	02:40	03:00
+85	02:40	03:10
+86	02:40	03:20
+87	02:50	03:10
+88	02:50	03:20
+89	02:50	03:30
+90	03:00	03:20
+91	03:00	03:30
+92	03:00	03:40
+93	03:10	03:30
+94	03:10	03:40
+95	03:10	03:50
+96	03:20	03:40
+97	03:20	03:50
+98	03:20	04:00
+99	03:30	03:50
+100	03:30	04:00
+101	03:30	04:10
+102	03:40	04:00
+103	03:40	04:10
+104	03:40	04:20
+105	03:50	04:10
+106	03:50	04:20
+107	03:50	04:30
+108	04:00	04:20
+109	04:00	04:30
+110	04:00	04:40
+111	04:10	04:30
+112	04:10	04:40
+113	04:10	04:50
+114	04:20	04:40
+115	04:20	04:50
+116	04:20	05:00
+117	04:30	04:50
+118	04:30	05:00
+119	04:30	05:10
+120	04:40	05:00
+121	04:40	05:10
+122	04:40	05:20
+123	04:50	05:10
+124	04:50	05:20
+125	04:50	05:30
+126	05:00	05:20
+127	05:00	05:30
+128	05:00	05:40
+129	05:10	05:30
+130	05:10	05:40
+131	05:10	05:50
+132	05:20	05:40
+133	05:20	05:50
+134	05:20	06:00
+135	05:30	05:50
+136	05:30	06:00
+137	05:30	06:10
+138	05:40	06:00
+139	05:40	06:10
+140	05:40	06:20
+141	05:50	06:10
+142	05:50	06:20
+143	05:50	06:30
+144	06:00	06:20
+145	06:00	06:30
+146	06:00	06:40
+147	06:10	06:30
+148	06:10	06:40
+149	06:10	06:50
+150	06:20	06:40
+151	06:20	06:50
+152	06:20	07:00
+153	06:30	06:50
+154	06:30	07:00
+155	06:40	07:00
+\.
+
+
+--
+-- Name: appointment_schedule_objid_seq; Type: SEQUENCE SET; Schema: public; Owner: kingram
+--
+
+SELECT pg_catalog.setval('public.appointment_schedule_objid_seq', 24, true);
+
+
+--
+-- Name: clients_objid_seq; Type: SEQUENCE SET; Schema: public; Owner: kingram
+--
+
+SELECT pg_catalog.setval('public.clients_objid_seq', 1000, true);
+
+
+--
+-- Name: instructors_objid_seq; Type: SEQUENCE SET; Schema: public; Owner: kingram
+--
+
+SELECT pg_catalog.setval('public.instructors_objid_seq', 22, true);
+
+
+--
+-- Name: lesson_details_objid_seq; Type: SEQUENCE SET; Schema: public; Owner: kingram
+--
+
+SELECT pg_catalog.setval('public.lesson_details_objid_seq', 10, true);
+
+
+--
+-- Name: mtm_lesson2client_objid_seq; Type: SEQUENCE SET; Schema: public; Owner: kingram
+--
+
+SELECT pg_catalog.setval('public.mtm_lesson2client_objid_seq', 1, false);
+
+
+--
+-- Name: session_schedule_objid_seq; Type: SEQUENCE SET; Schema: public; Owner: kingram
+--
+
+SELECT pg_catalog.setval('public.session_schedule_objid_seq', 7, true);
+
+
+--
+-- Name: time_increments_objid_seq; Type: SEQUENCE SET; Schema: public; Owner: kingram
+--
+
+SELECT pg_catalog.setval('public.time_increments_objid_seq', 171, true);
+
+
+--
+-- Name: zdoonotuse_times_objid_seq; Type: SEQUENCE SET; Schema: public; Owner: kingram
+--
+
+SELECT pg_catalog.setval('public.zdoonotuse_times_objid_seq', 155, true);
+
+
+--
+-- Name: appointment_schedule appointment_schedule_pkey; Type: CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.appointment_schedule
+    ADD CONSTRAINT appointment_schedule_pkey PRIMARY KEY (objid);
+
+
+--
+-- Name: clients clients_pkey; Type: CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.clients
+    ADD CONSTRAINT clients_pkey PRIMARY KEY (objid);
+
+
+--
+-- Name: instructors instructors_pkey; Type: CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.instructors
+    ADD CONSTRAINT instructors_pkey PRIMARY KEY (objid);
+
+
+--
+-- Name: lesson_details lesson_details_pkey; Type: CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.lesson_details
+    ADD CONSTRAINT lesson_details_pkey PRIMARY KEY (objid);
+
+
+--
+-- Name: mtm_lesson2client mtm_lesson2client_pkey; Type: CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.mtm_lesson2client
+    ADD CONSTRAINT mtm_lesson2client_pkey PRIMARY KEY (objid);
+
+
+--
+-- Name: session_schedule session_schedule_pkey; Type: CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.session_schedule
+    ADD CONSTRAINT session_schedule_pkey PRIMARY KEY (objid);
+
+
+--
+-- Name: time_increments time_increments_pkey; Type: CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.time_increments
+    ADD CONSTRAINT time_increments_pkey PRIMARY KEY (objid);
+
+
+--
+-- Name: zdoonotuse_times zdoonotuse_times_pkey; Type: CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.zdoonotuse_times
+    ADD CONSTRAINT zdoonotuse_times_pkey PRIMARY KEY (objid);
+
+
+--
+-- Name: public_appointment_schedule_client_id2_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_appointment_schedule_client_id2_idx ON public.appointment_schedule USING btree (client_id);
+
+
+--
+-- Name: public_appointment_schedule_instructor_id3_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_appointment_schedule_instructor_id3_idx ON public.appointment_schedule USING btree (instructor_id);
+
+
+--
+-- Name: public_appointment_schedule_lesson_detail_id0_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_appointment_schedule_lesson_detail_id0_idx ON public.appointment_schedule USING btree (lesson_detail_id);
+
+
+--
+-- Name: public_appointment_schedule_time_increment_id1_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_appointment_schedule_time_increment_id1_idx ON public.appointment_schedule USING btree (time_increment_id);
+
+
+--
+-- Name: public_clients_first_name0_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE UNIQUE INDEX public_clients_first_name0_idx ON public.clients USING btree (first_name, last_name);
+
+
+--
+-- Name: public_clients_parent_id1_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_clients_parent_id1_idx ON public.clients USING btree (parent_id);
+
+
+--
+-- Name: public_lesson_details_objid0_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_lesson_details_objid0_idx ON public.lesson_details USING btree (objid);
+
+
+--
+-- Name: public_lesson_details_session_id2_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_lesson_details_session_id2_idx ON public.lesson_details USING btree (session_id);
+
+
+--
+-- Name: public_lesson_details_session_location_id3_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_lesson_details_session_location_id3_idx ON public.lesson_details USING btree (session_location_id);
+
+
+--
+-- Name: public_lesson_details_session_type1_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_lesson_details_session_type1_idx ON public.lesson_details USING btree (session_type);
+
+
+--
+-- Name: public_locations_objid0_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_locations_objid0_idx ON public.locations USING btree (objid);
+
+
+--
+-- Name: public_mtm_lesson2client_client_id0_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_mtm_lesson2client_client_id0_idx ON public.mtm_lesson2client USING btree (client_id);
+
+
+--
+-- Name: public_mtm_lesson2client_lesson_id1_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_mtm_lesson2client_lesson_id1_idx ON public.mtm_lesson2client USING btree (lesson_id);
+
+
+--
+-- Name: public_mtm_lesson2client_session_id2_idx; Type: INDEX; Schema: public; Owner: kingram
+--
+
+CREATE INDEX public_mtm_lesson2client_session_id2_idx ON public.mtm_lesson2client USING btree (session_id);
+
+
+--
+-- Name: appointment_schedule tbi_new_appointment; Type: TRIGGER; Schema: public; Owner: kingram
+--
+
+CREATE TRIGGER tbi_new_appointment BEFORE INSERT ON public.appointment_schedule FOR EACH ROW EXECUTE PROCEDURE public.new_appointment();
+
+
+--
+-- Name: appointment_schedule tbu_edit_appointment; Type: TRIGGER; Schema: public; Owner: kingram
+--
+
+CREATE TRIGGER tbu_edit_appointment BEFORE UPDATE ON public.appointment_schedule FOR EACH ROW EXECUTE PROCEDURE public.edit_appointment();
+
+
+--
+-- Name: appointment_schedule appointment_schedule_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.appointment_schedule
+    ADD CONSTRAINT appointment_schedule_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(objid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: appointment_schedule appointment_schedule_instructor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.appointment_schedule
+    ADD CONSTRAINT appointment_schedule_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(objid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: appointment_schedule appointment_schedule_lesson_detail_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.appointment_schedule
+    ADD CONSTRAINT appointment_schedule_lesson_detail_id_fkey FOREIGN KEY (lesson_detail_id) REFERENCES public.lesson_details(objid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: appointment_schedule appointment_schedule_time_increment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.appointment_schedule
+    ADD CONSTRAINT appointment_schedule_time_increment_id_fkey FOREIGN KEY (time_increment_id) REFERENCES public.time_increments(objid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: clients clients_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.clients
+    ADD CONSTRAINT clients_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.clients(objid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: lesson_details lesson_details_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.lesson_details
+    ADD CONSTRAINT lesson_details_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.session_schedule(objid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: mtm_lesson2client mtm_lesson2client_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: kingram
+--
+
+ALTER TABLE ONLY public.mtm_lesson2client
+    ADD CONSTRAINT mtm_lesson2client_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(objid) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
