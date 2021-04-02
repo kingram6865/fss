@@ -61,10 +61,10 @@ async function editAppointment (req, res) {
   try {
     const SQL = `UPDATE appointment_schedule 
     SET lesson_detail_id = ?,
-    SET time_increment_id = ?,
-    SET teacher_id = ?,
-    SET client_id = ?,
-    SET confirmed = ?
+    time_increment_id = ?,
+    teacher_id = ?,
+    client_id = ?,
+    confirmed = ?
     WHERE objid = ${req.params.id}`
     const appointment = await executeSQL(SQL, values)
     res.status(201).json(appointment)
