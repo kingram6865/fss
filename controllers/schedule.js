@@ -51,19 +51,13 @@ async function addAppointment (req, res) {
 
 async function editAppointment (req, res) {
   const values = {
-    term1: `SET lesson_detail_id = ?`,
-    term2: `SET time_increment_id = ?`,
-    term3: `SET teacher_id = ?`,
-    term4: `SET client_id = ?`,
-    term5: `SET confirmed = ?`
+    term1: `lesson_detail_id = ${req.params.lessonid}`,
+    term2: `time_increment_id = ${req.params.timeid}`,
+    term3: `teacher_id = ${req.params.teacherid}`,
+    term4: `client_id = ${req.params.clientid}`,
+    term5: `confirmed = ${req.params.confirmed}`
   }
-    req.params.lessonid,
-    req.params.timeid,
-    req.params.teacherid,
-    req.params.clientid,
-    req.params.confirmed,
   
-
   try {
     const SQL = `UPDATE appointment_schedule 
     SET lesson_detail_id = ?,
