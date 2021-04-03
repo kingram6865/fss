@@ -47,7 +47,7 @@ async function addAppointment (req, res) {
     const SQL = `INSERT INTO appointment_schedule (
         lesson_detail_id, 
         time_increment_id, 
-        teacher_id, 
+        instructor_id, 
         client_id, 
         confirmed
       ) VALUES ($1, $2, $3, $4, $5) RETURNING *`
