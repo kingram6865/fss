@@ -50,7 +50,7 @@ async function addAppointment (req, res) {
         teacher_id, 
         client_id, 
         confirmed
-      ) VALUES ($1, $2, $3, $4, $5)`
+      ) VALUES ($1, $2, $3, $4, $5) RETURNING *`
     const appointment = await db.any(SQL. values)
     res.status(201).json(appointment)
   } catch (error) {
@@ -75,7 +75,7 @@ async function editAppointment (req, res) {
     client_id = $4,
     confirmed = $5,
     last_edit = NOW()
-    WHERE objid = ${req.params.id}`
+    WHERE objid = ${req.params.id} RETURNING *`
     const appointment = await db.any(SQL, values)
     res.status(201).json(appointment)
   } catch (error) {
@@ -85,7 +85,7 @@ async function editAppointment (req, res) {
 
 async function deleteAppointment (req, res) {
   try {
-    const SQL = `DELETE FROM appointment_schedule WHERE objid = ${req.params.id}`
+    const SQL = `DELETE FROM appointment_schedule WHERE objid = ${req.params.id} RETURNING *`
     const appointment = await db.any(SQL)
   } catch (error) {
     res.status(500).json(error.message)
