@@ -51,7 +51,7 @@ async function addAppointment (req, res) {
         client_id, 
         confirmed
       ) VALUES ($1, $2, $3, $4, $5) RETURNING *`
-    const appointment = await db.any(SQL. values)
+    const appointment = await db.any(SQL, values)
     res.status(201).json(appointment)
   } catch (error) {
     res.status(500).json(error.message)
