@@ -14,10 +14,12 @@ const { db } = require('../db/connection')
 
 async function getAppointments (req, res) {
   try {
-    const SQL = `SELECT * FROM appointment_schedule ORDER BY`
+    const SQL = `SELECT * FROM appointment_schedule`
     const rows = await db.any(SQL)
+    // console.log(rows)
     res.json(rows)
   } catch (error) {
+    console.log(error)
     res.status(500).json(error.message)
   }
 }
@@ -132,6 +134,7 @@ async function deleteAppointment (req, res) {
 
 // editTest([2, 13, 9, 20, 1])
 
+// getAppointments(1,2)
 module.exports = {
   getAppointments,
   getAppointment,
