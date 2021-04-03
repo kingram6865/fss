@@ -90,22 +90,22 @@ async function deleteAppointment (req, res) {
   }
 }
 
-async function test () {
-  try {
-    const SQL = `SELECT * FROM appointment_schedule`
-    const rows = await db.any(SQL)
-    rows.forEach(x => {
-      console.log(`Line 107: ${x.created} ${x.objid} ${x.start_time} ${x.end_time} ${x.instructor} ${x.client} ${x.confirmed} ${x.last_edit}`)
-    })
-  } catch (error) {
-    console.log(error.message)
-  } finally {
-    // conn.end()
-    db.$pool.end()
-  }
-}
+// async function test () {
+//   try {
+//     const SQL = `SELECT * FROM appointment_schedule`
+//     const rows = await db.any(SQL)
+//     rows.forEach(x => {
+//       console.log(`Line 107: ${x.created} ${x.objid} ${x.start_time} ${x.end_time} ${x.instructor} ${x.client} ${x.confirmed} ${x.last_edit}`)
+//     })
+//   } catch (error) {
+//     console.log(error.message)
+//   } finally {
+//     // conn.end()
+//     db.$pool.end()
+//   }
+// }
 
-test()
+// test()
 
 // async function editTest (arr) {
 //   const req = {
