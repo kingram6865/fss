@@ -6,7 +6,8 @@ async function executeSQL (sql) {
 }
 async function getAppointments () {
   try {
-    const SQL = `SELECT * FROM appointment_schedule`
+    // const SQL = `SELECT * FROM appointment_schedule`
+    const SQL = `SELECT * FROM lesson_details`
     const rows = await executeSQL(SQL)
     return rows
   } catch (error) {

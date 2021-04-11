@@ -21,7 +21,7 @@ CREATE TABLE lesson_details (
   session_period1_end date,
   session_period2_start date,
   session_period2_end date,
-  teachers integer,
+  num_teachers integer,
   notes varchar(255),
   PRIMARY KEY (objid)
 );

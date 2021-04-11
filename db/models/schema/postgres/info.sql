@@ -1,0 +1,1 @@
+select objid, first_name, last_name parent, student from clients WHERE parent is null;

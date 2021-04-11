@@ -25,7 +25,7 @@ DECLARE
   v_numteachers INTEGER;
   v_lessoninfo VARCHAR(500);
 BEGIN
-  SELECT first_name, last_name INTO v_clientfname, v_clientlname from clients WHERE objid = NEW.instructor_id ;
+  SELECT first_name, last_name INTO v_clientfname, v_clientlname from clients WHERE objid = NEW.client_id ;
   SELECT first_name, last_name INTO v_instructorfname, v_instructorlname from instructors WHERE objid = NEW.instructor_id;
   SELECT start_time, end_time, description INTO v_starttime, v_endtime, v_description FROM time_increments WHERE objid = NEW.time_increment_id;
   SELECT session_location, session_dates, session_type, session_period1_start, session_period1_end, session_period2_start, session_period2_end, teachers INTO v_sessionlocation, v_sessiondates, v_sessiontype, v_sessionperiod1start, v_sessionperiod1end, v_sessionperiod2start, v_sessionperiod2end, v_numteachers FROM lesson_details WHERE objid = NEW.lesson_detail_id;

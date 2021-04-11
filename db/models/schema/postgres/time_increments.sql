@@ -1,10 +1,7 @@
 /*
-
 Date: 2021-04-09 11:23:25
 Reconfigured for postgres
 */
-
-
 
 -- ----------------------------
 -- Table structure for time_increments
