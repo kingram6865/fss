@@ -17,7 +17,7 @@ async function getAppointments () {
 
 async function run () {
   const output = await getAppointments()
-  console.log(output)
+  console.log(`test.js -> Line 20: ${output}`)
 }
 
 run()

@@ -1,7 +1,6 @@
 /*
 Date: 2021-04-09 11:33:00
 Reformatted for postgres
-
 */
 
 -- ----------------------------
@@ -41,7 +40,6 @@ INSERT INTO lesson_details VALUES ('7', '1', 'Session 1', '2010', '1', 'Almaden'
 INSERT INTO lesson_details VALUES ('8', '7', 'Session 7', '2010', '2', 'Elks Lodge', 'Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010', '8', '2010-08-02 00:00:00', '2010-08-05 00:00:00', '2010-08-09 00:00:00', '2010-08-12 00:00:00', null, null);
 INSERT INTO lesson_details VALUES ('9', '6', 'Session 6', '2010', '2', 'Elks Lodge', 'Mon, July 26 2010 to Fri, July 30 2010', '5', '2010-07-26 00:00:00', '2010-07-30 00:00:00', null, null, null, null);
 INSERT INTO lesson_details VALUES ('10', '5', 'Session 5', '2010', '1', 'Almaden', 'Mon, July 19 2010 to Fri, July 23 2010', '5', '2010-07-19 00:00:00', '2010-07-23 00:00:00', null, null, null, null);
-
 
 /*
 DROP TRIGGER IF EXISTS tbi_new_session_detail;

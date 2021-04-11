@@ -92,25 +92,22 @@ async function deleteAppointment (req, res) {
   }
 }
 
-async function test () {
-  try {
-    // const SQL = `SELECT * FROM appointment_schedule`
-    const SQL = `SELECT * FROM lesson_details`
-    const rows = await db.any(SQL)
-    console.log(rows, SQL)
-    rows.forEach(x => {
-      // console.log(`Line 107: ${x.created} ${x.objid} ${x.start_time} ${x.end_time} ${x.instructor} ${x.client} ${x.confirmed} ${x.last_edit}`)
-      console.log(`Line 107: ${x.objid} ${x.session_id} ${x.session_name} ${x.session_year} ${x.session_location} ${x.session_dates} ${x.session_type} ${x.teachers}`)
-    })
-  } catch (error) {
-    console.log(error.message)
-  }// finally {
-    // conn.end()
-  //   db.$pool.end()
-  // }
-}
+// async function test () {
+//   try {
+//     // const SQL = `SELECT * FROM appointment_schedule`
+//     const SQL = `SELECT * FROM lesson_details`
+//     const rows = await db.any(SQL)
+//     console.log(rows, SQL)
+//     rows.forEach(x => {
+//       // console.log(`Line 107: ${x.created} ${x.objid} ${x.start_time} ${x.end_time} ${x.instructor} ${x.client} ${x.confirmed} ${x.last_edit}`)
+//       console.log(`Line 107: ${x.objid} ${x.session_id} ${x.session_name} ${x.session_year} ${x.session_location} ${x.session_dates} ${x.session_type} ${x.teachers}`)
+//     })
+//   } catch (error) {
+//     console.log(error.message)
+//   }
+// }
 
-test()
+// test()
 
 // async function editTest (arr) {
 //   const req = {
