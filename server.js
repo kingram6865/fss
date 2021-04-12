@@ -10,6 +10,7 @@ const intervals = require('./routes/intervals')
 const locations = require('./routes/locations')
 const lessondetails = require('./routes/lessons')
 const instructors = require('./routes/instructors')
+const instructorschedule = require('./routes/instructorschedule')
 
 const PORT = process.env.PORT || 3000
 // const SERVER = process.env.HOST || 'localhost'
@@ -26,6 +27,7 @@ app.use('/api', lessondetails)
 app.use('/api', instructors)
 app.use('/api', sessions)
 app.use('/api', locations)
+app.use('/api', instructorschedule)
 
 // app.listen(PORT, SERVER, () => console.log(`Listening on port: ${PORT} at ${SERVER}`))
 app.listen(PORT, () => console.log(`Listening on port: ${PORT}`))
