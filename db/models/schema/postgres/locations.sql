@@ -14,11 +14,12 @@ CREATE TABLE locations (
   site_address varchar(255),
   site_city varchar(255),
   site_zip varchar(255),
+  status int2,
   PRIMARY KEY (objid)
 );
 
 -- ----------------------------
 -- Records of locations
 -- ----------------------------
-INSERT INTO locations VALUES ('1', 'Almaden', '', 'Almaden', '');
-INSERT INTO locations VALUES ('2', 'Elks Lodge', '', 'Willow Glen', '');
+INSERT INTO locations VALUES ('1', 'Almaden', '', 'Almaden', '', 0);
+INSERT INTO locations VALUES ('2', 'Elks Lodge', '', 'Willow Glen', '', 0);
