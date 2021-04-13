@@ -1,3 +1,7 @@
+/**
+ * Screen context: appointment schedule
+ */
+
 import React from 'react'
 import './Appointment.css'
 import Layout from '../../components/shared/Layout/Layout'

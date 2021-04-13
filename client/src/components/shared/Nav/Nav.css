@@ -5,3 +5,15 @@
 .dead-links:hover {
   background-color: chartreuse;
 }
+
+nav {
+  display: flex;
+}
+
+.admin-link {
+  align-self: flex-start;
+}
+
+a {
+  padding: 0 5px;
+}

@@ -6,7 +6,8 @@ import './Layout.css'
 export default function Layout (props) {
   return (
     <div className="layout">
-      <Nav />
+      <Nav props={props.screenname}/>
+      {console.log(props)}
       <div className="layout-children">
         {props.children}
       </div>
