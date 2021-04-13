@@ -1,8 +1,8 @@
 import api from "./apiConfig"
 
-export const getAppointmentSchedule = async () => {
+export const getLocations = async () => {
   try {
-    const res = await api.get(`/schedule`)
+    const res = await api.get(`/locations`)
     return res.data
   } catch (error) {
     throw error

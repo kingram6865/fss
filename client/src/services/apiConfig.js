@@ -9,8 +9,6 @@ const apiUrls = {
 
 if (window.location.hostname === '192.168.1.19') {
   apiUrl = apiUrls.development
-// } else if (window.location.hostname === 'bastiat.hopto.org') {
-//   apiUrl = apiUrls.remote
 } else {
   apiUrl = apiUrls.production
 }

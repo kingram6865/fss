@@ -9,7 +9,7 @@ import Schedule from '../../components/Schedule/Schedule'
 
 export default function Appointment (props) {
   return (
-    <Layout >
+    <Layout screenname="schedule">
       <div className="schedule-manager">
         <h1>Appointment Schedule List</h1>
         <h5>(Currently Booked Sessions)</h5>

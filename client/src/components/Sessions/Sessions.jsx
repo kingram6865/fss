@@ -47,7 +47,9 @@ export default function Sessions (props) {
     populate()
   }, [])
 
-
+  function generateSession() {
+    alert('Open Session Creation Form')
+  }
 
   return (
     <div className="sessions-container">
@@ -55,6 +57,7 @@ export default function Sessions (props) {
         <tbody>
           <tr><th>Session Name</th><th>Start Date</th><th>End Date</th><th>Days</th></tr>
           { sessions }
+          <tr><td align="center" colSpan={4} className="new-session" onClick={generateSession}>Create New Session</td></tr>
         </tbody>
       </table>
     </div>

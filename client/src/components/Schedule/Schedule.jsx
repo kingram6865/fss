@@ -8,7 +8,7 @@ export default function Schedule (props) {
   useEffect(() => {
     const populate = async () => {
       const results = await getAppointmentSchedule()
-      console.log(results)
+      // console.log(results)
       const data = results.map((item, index) => {
         return (
           <tr key={index}>
@@ -29,8 +29,6 @@ export default function Schedule (props) {
 
   }, [])
 
-  
-
   return (
     <>
       <table className="schedule">
@@ -39,7 +37,6 @@ export default function Schedule (props) {
           {appointments}
         </tbody>
       </table>
-
     </>
   )
 }
