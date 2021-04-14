@@ -29,12 +29,17 @@ export default function Schedule (props) {
 
   }, [])
 
+  function createAppointment () {
+    alert('Create Appointment Triggered')
+  }
+
   return (
     <>
       <table className="schedule">
         <tbody>
           <tr><th>Session Type</th><th>Start Time</th><th>End Time</th><th>Instructor</th><th>Student</th><th>Confirmation</th></tr>
           {appointments}
+          <tr><td align="center" colSpan={6} className="new-appointment" onClick={createAppointment}>Create New Appointment</td></tr>
         </tbody>
       </table>
     </>

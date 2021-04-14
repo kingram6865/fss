@@ -4,10 +4,10 @@ import Footer from '../Footer/Footer'
 import './Layout.css'
 
 export default function Layout (props) {
+  console.log(props)
   return (
     <div className="layout">
-      <Nav props={props.screenname}/>
-      {console.log(props)}
+      <Nav screenname={props.screenname}/>
       <div className="layout-children">
         {props.children}
       </div>

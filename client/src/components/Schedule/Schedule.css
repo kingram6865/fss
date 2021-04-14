@@ -8,3 +8,8 @@ body {
   padding: 5px 5px;
   border-collapse: collapse;
 }
+
+.new-appointment {
+  font-weight: bold;
+  background-color: rgb(41, 252, 80);
+}

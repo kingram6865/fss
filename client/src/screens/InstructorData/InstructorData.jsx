@@ -5,7 +5,7 @@ import Instructors from '../../components/Instructors/Instructors'
 
 export default function InstructorData (props) {
   return (
-    <Layout screennane="instructors">
+    <Layout screenname="instructors">
       <div className="instructors-data-container">
         <Instructors />
       </div>

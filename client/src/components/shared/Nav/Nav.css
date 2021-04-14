@@ -1,19 +1,40 @@
-.dead-links {
-  padding: 5px 5px;
+.spacing {
+  padding: 10px 0px;
 }
 
 .dead-links:hover {
-  background-color: chartreuse;
 }
 
 nav {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.navbar-links {
+  display: flex;
+  /* text-align: center; */
+  justify-content: space-evenly;
+}
+
+.nav-link:hover {
+  background-color: chartreuse;
 }
 
 .admin-link {
-  align-self: flex-start;
+  font-weight: bold;
+  padding: 6px 6px 6px 6px;
+  border: 5px solid greenyellow;
+  background-color: hotpink;
+  text-decoration: none;
+  border-radius: 60%;
 }
 
 a {
   padding: 0 5px;
+}
+
+.inactive {
+  padding: 2px 3px;
+  border: 1px solid black;
 }

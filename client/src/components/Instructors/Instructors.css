@@ -1,0 +1,13 @@
+.instructor-details {
+  height: 80vh;
+  overflow-y: scroll;
+  scroll-behavior: auto;
+}
+
+
+table.instructors-data {
+  table-layout: fixed;
+  background-color: rgb(153, 187, 248);
+  height: 100px;
+  overflow-y: auto;
+}
