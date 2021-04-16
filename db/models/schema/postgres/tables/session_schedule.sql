@@ -7,7 +7,6 @@ Date: 2021-04-09 11:26:35
 -- ----------------------------
 -- Table structure for session_schedule
 -- ----------------------------
-DROP TABLE IF EXISTS session_schedule;
 CREATE TABLE session_schedule (
   objid serial,
   session_name varchar(25),

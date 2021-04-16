@@ -3,12 +3,16 @@ import { NavLink, Link } from "react-router-dom"
 import './Nav.css'
 
 export default function Nav (props) {
-  console.log(`Nav.jsx, Line 6: ${props.screenname}`)
+  // console.log(`Nav.jsx, Line 6: ${props.screenname}`)
   return (
     <nav>
       <div className="spacing"></div>
       <div className="admin-login">
-        <NavLink to="/" className="admin-link">Activate Admin</NavLink>
+        {
+          (props.user === 'admin') ? null : <NavLink to="/admin" className="admin-link">Activate Admin Functions</NavLink>
+        }
+
+        
       </div>
       <div className='navbar'>
         <div className="navbar-links">

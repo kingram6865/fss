@@ -6,7 +6,6 @@ Reformattted for Postgres
 -- ----------------------------
 -- Table structure for clients
 -- ----------------------------
-DROP TABLE IF EXISTS clients;
 CREATE TABLE clients (
   objid serial,
   first_name varchar(25),

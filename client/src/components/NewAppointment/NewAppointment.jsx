@@ -19,3 +19,17 @@ export default function NewAppointment () {
     </div>
   )
 }
+
+
+/**
+ * These tables need to populate the drop downs to create appointment
+ * session_details 
+ * time_increments 
+ * instructors 
+ * clients
+ * 
+ * So the API needs to have routes to these tables' data
+ * 
+ * 
+ * 
+ */

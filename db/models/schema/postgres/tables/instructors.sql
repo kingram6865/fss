@@ -6,7 +6,6 @@ Reformatted for postgres
 -- ----------------------------
 -- Table structure for instructors
 -- ----------------------------
-DROP TABLE IF EXISTS instructors;
 CREATE TABLE instructors (
   objid serial,
   entry_date date,

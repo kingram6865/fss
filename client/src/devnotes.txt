@@ -1,0 +1,20 @@
+2021 04 14 1255
+Login functionality
+
+The "Activate Admin" flow should check the permissions status
+If the permissions are not set for admin access, then the user
+should be redirected to the login process.
+
+Once the login process has completed successfully, there should be
+a state carried through each screen and component indicating the
+admin flag is active.
+
+The active admin flag should trigger the admin version of components
+So that add, update and delete functionality is enabled, until the admin
+functionality is deliberately turnned off.
+
+Also, a token should be held, so that once the login function is completed
+the admin flag can be toggled without logging out.
+
+Logging out completely should remove the access to the admin toggle, by removing
+the login tokenn.

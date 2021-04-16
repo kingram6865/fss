@@ -31,4 +31,4 @@ BEGIN
 END;
 $new_teacher_session$
 
---CREATE TRIGGER tbi_new_teacher4session BEFORE INSERT ON teachers2sessions FOR EACH ROW EXECUTE PROCEDURE new_teacher_session();
+-- CREATE TRIGGER tbi_new_teacher4session BEFORE INSERT ON teachers2sessions FOR EACH ROW EXECUTE PROCEDURE new_teacher_session();

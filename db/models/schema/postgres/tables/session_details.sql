@@ -4,10 +4,9 @@ Reformatted for postgres
 */
 
 -- ----------------------------
--- Table structure for lesson_details
+-- Table structure for session_details
 -- ----------------------------
-DROP TABLE IF EXISTS lesson_details;
-CREATE TABLE lesson_details (
+CREATE TABLE session_details (
   objid serial,
   session_id integer REFERENCES session_schedule (objid),
   session_name varchar(30) ,
@@ -22,24 +21,25 @@ CREATE TABLE lesson_details (
   session_period2_end date,
   num_teachers integer,
   notes varchar(255),
+  last_edit date,
   PRIMARY KEY (objid)
 );
 
-COMMENT ON COLUMN lesson_details.session_type IS 'Number of teachers for session';
+COMMENT ON COLUMN session_details.session_type IS 'Number of teachers for session';
 -- ----------------------------
 -- Records of lesson_details
 -- ----------------------------
 
-INSERT INTO lesson_details VALUES ('1', '7', 'Session 7', '2010', '2', 'Elks Lodge', 'Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010', '8', '2010-08-02 00:00:00', '2010-08-05 00:00:00', '2010-08-09 00:00:00', '2010-08-12 00:00:00', null, null);
-INSERT INTO lesson_details VALUES ('2', '6', 'Session 6', '2010', '1', 'Almaden', 'Mon, July 26 2010 to Fri, July 30 2010', '5', '2010-07-26 00:00:00', '2010-07-30 00:00:00', null, null, null, null);
-INSERT INTO lesson_details VALUES ('3', '5', 'Session 5', '2010', '1', 'Almaden', 'Mon, July 19 2010 to Fri, July 23 2010', '5', '2010-07-19 00:00:00', '2010-07-23 00:00:00', null, null, null, null);
-INSERT INTO lesson_details VALUES ('4', '4', 'Session 4', '2010', '2', 'Elks Lodge', 'Period 1: Tue, July 06 2010 to Fri, July 09 2010 -- BREAK -- Period 2: Tue, July 13 2010 to Fri, July 16 2010', '8', '2010-07-06 00:00:00', '2010-07-09 00:00:00', '2010-07-13 00:00:00', '2010-07-16 00:00:00', null, null);
-INSERT INTO lesson_details VALUES ('5', '3', 'Session 3', '2010', '2', 'Elks Lodge', 'Mon, June 28 2010 to Thu, July 01 2010', '4', '2010-06-28 00:00:00', '2010-07-01 00:00:00', null, null, null, null);
-INSERT INTO lesson_details VALUES ('6', '2', 'Session 2', '2010', '1', 'Almaden', 'Period 1: Mon, June 14 2010 to Thu, June 17 2010 -- BREAK -- Period 2: Mon, June 21 2010 to Thu, June 24 2010', '8', '2010-06-14 00:00:00', '2010-06-17 00:00:00', '2010-06-21 00:00:00', '2010-06-24 00:00:00', null, null);
-INSERT INTO lesson_details VALUES ('7', '1', 'Session 1', '2010', '1', 'Almaden', 'Mon, June 07 2010 to Thu, June 10 2010', '4', '2010-06-07 00:00:00', '2010-06-10 00:00:00', null, null, null, null);
-INSERT INTO lesson_details VALUES ('8', '7', 'Session 7', '2010', '2', 'Elks Lodge', 'Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010', '8', '2010-08-02 00:00:00', '2010-08-05 00:00:00', '2010-08-09 00:00:00', '2010-08-12 00:00:00', null, null);
-INSERT INTO lesson_details VALUES ('9', '6', 'Session 6', '2010', '2', 'Elks Lodge', 'Mon, July 26 2010 to Fri, July 30 2010', '5', '2010-07-26 00:00:00', '2010-07-30 00:00:00', null, null, null, null);
-INSERT INTO lesson_details VALUES ('10', '5', 'Session 5', '2010', '1', 'Almaden', 'Mon, July 19 2010 to Fri, July 23 2010', '5', '2010-07-19 00:00:00', '2010-07-23 00:00:00', null, null, null, null);
+-- INSERT INTO lesson_details VALUES ('1', '7', 'Session 7', '2010', '2', 'Elks Lodge', 'Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010', '8', '2010-08-02 00:00:00', '2010-08-05 00:00:00', '2010-08-09 00:00:00', '2010-08-12 00:00:00', null, null);
+-- INSERT INTO lesson_details VALUES ('2', '6', 'Session 6', '2010', '1', 'Almaden', 'Mon, July 26 2010 to Fri, July 30 2010', '5', '2010-07-26 00:00:00', '2010-07-30 00:00:00', null, null, null, null);
+-- INSERT INTO lesson_details VALUES ('3', '5', 'Session 5', '2010', '1', 'Almaden', 'Mon, July 19 2010 to Fri, July 23 2010', '5', '2010-07-19 00:00:00', '2010-07-23 00:00:00', null, null, null, null);
+-- INSERT INTO lesson_details VALUES ('4', '4', 'Session 4', '2010', '2', 'Elks Lodge', 'Period 1: Tue, July 06 2010 to Fri, July 09 2010 -- BREAK -- Period 2: Tue, July 13 2010 to Fri, July 16 2010', '8', '2010-07-06 00:00:00', '2010-07-09 00:00:00', '2010-07-13 00:00:00', '2010-07-16 00:00:00', null, null);
+-- INSERT INTO lesson_details VALUES ('5', '3', 'Session 3', '2010', '2', 'Elks Lodge', 'Mon, June 28 2010 to Thu, July 01 2010', '4', '2010-06-28 00:00:00', '2010-07-01 00:00:00', null, null, null, null);
+-- INSERT INTO lesson_details VALUES ('6', '2', 'Session 2', '2010', '1', 'Almaden', 'Period 1: Mon, June 14 2010 to Thu, June 17 2010 -- BREAK -- Period 2: Mon, June 21 2010 to Thu, June 24 2010', '8', '2010-06-14 00:00:00', '2010-06-17 00:00:00', '2010-06-21 00:00:00', '2010-06-24 00:00:00', null, null);
+-- INSERT INTO lesson_details VALUES ('7', '1', 'Session 1', '2010', '1', 'Almaden', 'Mon, June 07 2010 to Thu, June 10 2010', '4', '2010-06-07 00:00:00', '2010-06-10 00:00:00', null, null, null, null);
+-- INSERT INTO lesson_details VALUES ('8', '7', 'Session 7', '2010', '2', 'Elks Lodge', 'Period 1: Mon, August 02 2010 to Thu, August 05 2010 -- BREAK -- Period 2: Mon, August 09 2010 to Thu, August 12 2010', '8', '2010-08-02 00:00:00', '2010-08-05 00:00:00', '2010-08-09 00:00:00', '2010-08-12 00:00:00', null, null);
+-- INSERT INTO lesson_details VALUES ('9', '6', 'Session 6', '2010', '2', 'Elks Lodge', 'Mon, July 26 2010 to Fri, July 30 2010', '5', '2010-07-26 00:00:00', '2010-07-30 00:00:00', null, null, null, null);
+-- INSERT INTO lesson_details VALUES ('10', '5', 'Session 5', '2010', '1', 'Almaden', 'Mon, July 19 2010 to Fri, July 23 2010', '5', '2010-07-19 00:00:00', '2010-07-23 00:00:00', null, null, null, null);
 
 /*
 DROP TRIGGER IF EXISTS tbi_new_session_detail;

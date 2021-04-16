@@ -1,4 +1,4 @@
-CREATE TABLE teachers2sessions (
+CREATE TABLE instructor2session (
   objid serial,
   created date,
   session_id integer REFERENCES session_schedule (objid),

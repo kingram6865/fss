@@ -6,11 +6,10 @@ Reformatted for postgres
 -- ----------------------------
 -- Table structure for appointment_schedule
 -- ----------------------------
-DROP TABLE IF EXISTS appointment_schedule;
 CREATE TABLE appointment_schedule (
   objid serial,
   created date,
-  lesson_detail_id integer REFERENCES lesson_details (objid),
+  session_detail_id integer REFERENCES session_details (objid),
   lesson_info varchar(500),
   time_increment_id integer REFERENCES time_increments (objid),
   start_time varchar(10),

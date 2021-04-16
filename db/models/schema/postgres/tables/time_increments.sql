@@ -6,7 +6,6 @@ Reconfigured for postgres
 -- ----------------------------
 -- Table structure for time_increments
 -- ----------------------------
-DROP TABLE IF EXISTS time_increments;
 CREATE TABLE time_increments (
   objid serial,
   start_time time,
