@@ -8,3 +8,7 @@ export const getSessions = async () => {
     throw error
   }
 }
+
+export function createSession (req, res) {
+  console.log(req.params)
+}

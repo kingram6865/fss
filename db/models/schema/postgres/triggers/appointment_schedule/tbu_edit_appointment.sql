@@ -49,7 +49,7 @@ BEGIN
     NEW.lesson_info := v_lessoninfo;
   END IF;
 
-  NEW.last_edit = NOW();
+  NEW.last_edit := NOW();
   
   RETURN NEW;
 END;

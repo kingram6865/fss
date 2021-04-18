@@ -1,5 +1,6 @@
 // import { React } from 'react'
 import { React, useEffect, useState } from 'react'
+import { Redirect, Link } from 'react-router-dom'
 import { getSessions } from '../../services/sessions'
 import './Sessions.css'
 
@@ -48,7 +49,8 @@ export default function Sessions (props) {
   }, [])
 
   function generateSession() {
-    alert('Open Session Creation Form')
+    // alert('Open Session Creation Form')
+    return <Redirect to={`/create-session`} />
   }
 
   return (
@@ -57,7 +59,7 @@ export default function Sessions (props) {
         <tbody>
           <tr><th>Session Name</th><th>Start Date</th><th>End Date</th><th>Days</th></tr>
           { sessions }
-          <tr><td align="center" colSpan={4} className="new-session" onClick={generateSession}>Create New Session</td></tr>
+          <tr><td align="center" colSpan={4} className="new-session"><Link to='/create-session'>Create New Session</Link></td></tr>
         </tbody>
       </table>
     </div>

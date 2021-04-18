@@ -7,6 +7,7 @@ import InstructorData from './screens/InstructorData/InstructorData'
 import LocationData from './screens/LocationData/LocationData'
 import Home from './screens/Home/Home'
 import AdminHome from './screens/AdminHome/AdminHome'
+import NewSession from './screens/NewSession/NewSession'
 
 function App() {
   const [permissions, setPermissions] = useState([])
@@ -19,6 +20,7 @@ function App() {
       <Route exact path="/locations" render={(props) => <LocationData userpermissions={permissions} />} />
       <Route exact path="/instructors" render={(props) => <InstructorData userpermissions={permissions} />} />
       <Route exact path="/admin" render={(props) => <AdminHome userpermissions={permissions} />} />
+      <Route exact path="/create-session" render={(props) => <NewSession />} />
     </Switch>
     </div>
   );

@@ -24,7 +24,7 @@ BEGIN
   NEW.teacher := v_instructor;
 
   IF (NEW.created IS NULL) THEN
-    NEW.created = NOW();
+    NEW.created := NOW();
   END IF;
 
   RETURN NEW;
