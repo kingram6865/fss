@@ -1,6 +1,7 @@
 import axios from "axios"
 
 let apiUrl;
+// apiUrl = 'http://192.168.1.19:3006/api'
 
 const apiUrls = {
   production: 'https://fss-schedule.herokuapp.com/api',

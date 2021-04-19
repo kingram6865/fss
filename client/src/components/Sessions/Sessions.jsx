@@ -1,6 +1,6 @@
 // import { React } from 'react'
 import { React, useEffect, useState } from 'react'
-import { Redirect, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { getSessions } from '../../services/sessions'
 import './Sessions.css'
 
@@ -48,10 +48,10 @@ export default function Sessions (props) {
     populate()
   }, [])
 
-  function generateSession() {
-    // alert('Open Session Creation Form')
-    return <Redirect to={`/create-session`} />
-  }
+  // function generateSession() {
+  //   // alert('Open Session Creation Form')
+  //   return <Redirect to={`/create-session`} />
+  // }
 
   return (
     <div className="sessions-container">

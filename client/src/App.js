@@ -1,5 +1,5 @@
 import './App.css';
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Switch, Route } from 'react-router-dom'
 import Appointments from './screens/Appointments/Appointments'
 import SessionData from './screens/SessionData/SessionData'
@@ -8,9 +8,15 @@ import LocationData from './screens/LocationData/LocationData'
 import Home from './screens/Home/Home'
 import AdminHome from './screens/AdminHome/AdminHome'
 import NewSession from './screens/NewSession/NewSession'
+import EditSession from './screens/EditSession/EditSession'
 
 function App() {
   const [permissions, setPermissions] = useState([])
+  
+  useEffect(() => {
+    setPermissions(null)
+  }, [])
+  
   return (
     <div className="App">
     <Switch>
@@ -21,6 +27,7 @@ function App() {
       <Route exact path="/instructors" render={(props) => <InstructorData userpermissions={permissions} />} />
       <Route exact path="/admin" render={(props) => <AdminHome userpermissions={permissions} />} />
       <Route exact path="/create-session" render={(props) => <NewSession />} />
+      <Route exact path="/edit-session" render={(props) => <EditSession sess_id={4}/>} />
     </Switch>
     </div>
   );

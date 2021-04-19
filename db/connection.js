@@ -13,14 +13,14 @@ const cn = `postgres://${process.env.PGDB_USER}:${process.env.PGDB_PW}@${process
 
 const ssl = { rejectUnauthorized: false }
 const config = {
-  connectionString: `${cn}`
-  // ssl: ssl,
+  connectionString: `${cn}`,
+  ssl: ssl
   // statement_timeout: 10000
 }
 
 const db = pg(config)
 
-console.log(`connection.js -> Line 20: ${cn}`)
+// console.log(`connection.js -> Line 20: ${cn}`)
 module.exports = {
   db
 }
