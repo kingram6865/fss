@@ -1,3 +1,9 @@
 .App {
   text-align: center;
 }
+
+.component-title {
+  font-weight: bold;
+  color: white;
+  background-color: black;
+}

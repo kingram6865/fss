@@ -17,7 +17,7 @@ export default function EditSession (props) {
     const populate = async (id) => {
       const response = await getSession(id)
       // console.log(response[0])
-      setSessiondata({...response[0], start_date: response[0].start_date, end_date: response[0].end_date})
+      setSessiondata({...response[0]})
     }
 
     populate(props.sess_id)
@@ -33,9 +33,8 @@ export default function EditSession (props) {
 
   async function handleSubmit (event) {
     event.preventDefault()
-    // createSession(sessiondata)
     editSession(sessiondata)
-    alert(JSON.stringify(sessiondata, null, 2))
+    // alert(JSON.stringify(sessiondata, null, 2))
   }
 
   return (

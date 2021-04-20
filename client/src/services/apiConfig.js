@@ -1,7 +1,6 @@
 import axios from "axios"
 
 let apiUrl;
-// apiUrl = 'http://192.168.1.19:3006/api'
 
 const apiUrls = {
   production: 'https://fss-schedule.herokuapp.com/api',
@@ -17,7 +16,5 @@ if (window.location.hostname === '192.168.1.19') {
 const api = axios.create({
   baseURL: apiUrl
 });
-
-console.log(JSON.stringify(api, null, 2))
 
 export default api;
