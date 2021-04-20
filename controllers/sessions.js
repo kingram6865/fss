@@ -10,33 +10,35 @@ async function getSessions (req, res) {
   }
 }
 async function getSession (req, res) {
+  console.log(`sessions.js [getSession(${req.params})]`)
   try {
     const SQL = `SELECT objid, session_name, TO_CHAR(start_date, 'YYYY-MM-DD') start_date, TO_CHAR(end_date, 'YYYY-MM-DD') end_date, session_type FROM session_schedule WHERE objid = ${req.params.id}`
+    console.log(SQL)
     const rows = await db.any(SQL)
     res.json(rows)
   } catch (error) {
     res.status(500).json(error.message)
   }
 }
+
 async function createSession (req, res) {
   console.log(`[POST] controllers/sessions.js ========`)
-  // console.log(JSON.stringify(req.body, null, 2))
+  console.log(JSON.stringify(req.body, null, 2))
   // console.log(req)
   response = {
-    request_data: (req.body) ? req.body : "The request data did not arrive",
-    note: "There should be data"
+    request_data: (req.body) ? req.body : "The POST request data did not arrive",
   }
   console.log(`================================`)
-  // try {
-  //   const SQL = `INSERT INTO session_schedule (session_name, start_date, end_date, session_type) VALUES ('${req.params.session_name}', TO_DATE('${req.params.start_date}','YYYY-MM-DD'), TO_DATE('${req.params.end_date}', 'YYYY-MM-DD'), ${req.params.days})`
-  //   console.log(SQL)
-  //   const rows = await db.any(SQL)
-  //   res.json(rows)
-  // } catch (error) {
-  //   res.status(500).json(error.message)
-  // }
+  try {
+    const SQL = `INSERT INTO session_schedule (session_name, start_date, end_date, session_type) VALUES ('${req.body.session_name}', TO_DATE('${req.body.start_date}','YYYY-MM-DD'), TO_DATE('${req.body.end_date}', 'YYYY-MM-DD'), ${req.body.session_type}) RETURNING *`
+    console.log(SQL)
+    const rows = await db.any(SQL)
+    res.json(rows)
+  } catch (error) {
+    res.status(500).json(error.message)
+  }
 
-  res.json(response)
+  // res.json(response)
 }
 
 async function editSession (req, res) {

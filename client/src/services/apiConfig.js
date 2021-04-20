@@ -18,4 +18,6 @@ const api = axios.create({
   baseURL: apiUrl
 });
 
+console.log(JSON.stringify(api, null, 2))
+
 export default api;

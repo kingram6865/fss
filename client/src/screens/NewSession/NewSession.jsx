@@ -1,6 +1,6 @@
 import { React, useState } from 'react'
 import Layout from '../../components/shared/Layout/Layout'
-import { editSession } from '../../services/sessions'
+import { createSession } from '../../services/sessions'
 import './NewSession.css'
 
 export default function NewSession (props) {
@@ -8,7 +8,7 @@ export default function NewSession (props) {
     session_name: '',
     start_date: '',
     end_date: '',
-    days: ''
+    session_type: ''
   })
 
   function handleChange (event) {
@@ -20,7 +20,7 @@ export default function NewSession (props) {
 
   async function handleSubmit (event) {
     event.preventDefault()
-    editSession(sessiondata)
+    createSession(sessiondata)
     // alert(JSON.stringify(sessiondata, null, 2))
   }
 
@@ -49,7 +49,7 @@ export default function NewSession (props) {
         /> <br/>
         <label htmlFor="days" className="htmlFor">Session Length (days)</label>
         <input 
-          name="days" 
+          name="session_type" 
           type="number"
           onChange={handleChange}
         />
