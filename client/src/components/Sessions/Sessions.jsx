@@ -26,6 +26,16 @@ export default function Sessions (props) {
     return formatted
   }
 
+  // function editRecord (e) {
+  //   const id = e.currentTarget.getAttribute('data-id')
+  //   alert(`Edit this record ${id}`)
+  // }
+
+  // function deleteRecord (e) {
+  //   const id = e.currentTarget.getAttribute('data-id')
+  //   alert(`Delete this record ${id}`)
+  // }
+
   useEffect(() => {
     const populate = async () => {
       const results = await getSessions()
@@ -38,6 +48,10 @@ export default function Sessions (props) {
             <td>{formatTime(item.start_date)}</td>
             <td>{formatTime(item.end_date)}</td>
             <td>{item.session_type}</td>
+            {/* <td className="actions" onClick={editRecord} data-id={item.objid}><i className="fas fa-pencil-alt"></i></td>
+            <td className="actions" onClick={deleteRecord} data-id={item.objid}><i className="fas fa-times"></i></td> */}
+            <td className="actions" data-id={item.objid}><Link to={{pathname: `/sessions/${item.objid}/edit`}}><i className="fas fa-pencil-alt"></i></Link></td>
+            <td className="actions" data-id={item.objid}><Link to={{pathname: `/sessions/${item.objid}/delete`}}><i className="fas fa-times"></i></Link></td>
           </tr>
         )
       })
@@ -57,7 +71,7 @@ export default function Sessions (props) {
     <div className="sessions-container">
       <table className="sessions-table">
         <tbody>
-          <tr><th>Session Name</th><th>Start Date</th><th>End Date</th><th>Days</th></tr>
+          <tr><th>Session</th><th>Start Date</th><th>End Date</th><th>Days</th></tr>
           { sessions }
           <tr><td align="center" colSpan={4} className="new-session"><Link to='/create-session'>Create New Session</Link></td></tr>
         </tbody>

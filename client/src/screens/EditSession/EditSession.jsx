@@ -1,9 +1,11 @@
 import { React, useState, useEffect } from 'react'
 import './EditSession.css'
+import { useParams } from 'react-router-dom'
 import { getSession, editSession } from '../../services/sessions'
 import Layout from '../../components/shared/Layout/Layout'
 
 export default function EditSession (props) {
+  const { id } = useParams()
   const [sessiondata, setSessiondata] = useState({
     objid: '',
     session_name: '',
@@ -14,15 +16,15 @@ export default function EditSession (props) {
 
   useEffect(() => {
     // console.log(props.sess_id)
-    const populate = async (id) => {
-      const response = await getSession(id)
+    const populate = async (_id) => {
+      const response = await getSession(_id)
       // console.log(response[0])
       setSessiondata({...response[0]})
     }
 
-    populate(props.sess_id)
+    populate(id)
 
-  }, [props.sess_id])
+  }, [id])
 
   function handleChange (event) {
     const { name, value } = event.target
@@ -34,6 +36,13 @@ export default function EditSession (props) {
   async function handleSubmit (event) {
     event.preventDefault()
     editSession(sessiondata)
+    /**
+     * Receive results from editSession
+     * update state variable which is results
+     * Show a modal div, or alert indicating the data that was altered.
+     */
+
+
     // alert(JSON.stringify(sessiondata, null, 2))
   }
 

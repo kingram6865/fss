@@ -1,3 +1,15 @@
 .new-session {
   background-color: burlywood;
 }
+
+.fa-times {
+  color: red;
+}
+
+.fa-pencil-alt {
+  color:cornflowerblue;
+}
+
+.actions {
+  border: none;
+}

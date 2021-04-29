@@ -27,7 +27,7 @@ function App() {
       <Route exact path="/instructors" render={(props) => <InstructorData userpermissions={permissions} />} />
       <Route exact path="/admin" render={(props) => <AdminHome userpermissions={permissions} />} />
       <Route exact path="/create-session" render={(props) => <NewSession />} />
-      <Route exact path="/edit-session" render={(props) => <EditSession sess_id={4}/>} />
+      <Route exact path="/sessions/:id/edit" render={(props) => <EditSession />} />
     </Switch>
     </div>
   );

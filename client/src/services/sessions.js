@@ -20,7 +20,7 @@ export const getSession = async (id) => {
 
 export const createSession = async data => {
   try {
-    console.log(`services/sessions.js => Create record: ${JSON.stringify(data, null, 2)}`)
+    // console.log(`services/sessions.js => Create record: ${JSON.stringify(data, null, 2)}`)
     const res = await api.post('/sessions', data)
     return res.data
   } catch (error) {
@@ -30,8 +30,8 @@ export const createSession = async data => {
 
 export async function editSession (data) {
   try {
-    console.log(`Update record: ${JSON.stringify(data, null, 2)}`)
-    const res = await api.put(`/sessions/${data.id}`, data)
+    // console.log(`Update record: ${JSON.stringify(data, null, 2)}`)
+    const res = await api.put(`/sessions/${data.objid}`, data)
     return res.data
   } catch (error) {
     throw error
