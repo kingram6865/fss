@@ -5,7 +5,7 @@ export default function Footer () {
 
   return (
     <>
-      <footer>&#169;Farnsworth Swim School 2021</footer>
+      <footer><a href="https://farnsworthswimschool.com/">&#169;Farnsworth Swim School 2021</a></footer>
     </>
   )
 }

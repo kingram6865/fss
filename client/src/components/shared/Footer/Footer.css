@@ -3,3 +3,7 @@ footer {
   color: darkcyan;
   font-weight: bold;
 }
+
+footer.a {
+  text-decoration: none;
+}
