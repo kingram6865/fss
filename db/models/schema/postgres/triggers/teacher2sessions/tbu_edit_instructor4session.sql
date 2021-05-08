@@ -11,7 +11,7 @@ DECLARE
   v_sessionname VARCHAR(10);
   v_sessiontype VARCHAR(1);
   v_instructor VARCHAR(80);
-  v_session VARCHAR(50)
+  v_session VARCHAR(50);
 
 BEGIN
   SELECT first_name, last_name INTO v_fname, v_lname FROM instructors WHERE objid = NEW.instructor_id;
